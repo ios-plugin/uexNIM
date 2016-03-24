@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<uexplugins>
+    <plugin name="uexNIM">
+        <method name="registerApp"></method>
+        <method name="registerUser"></method>
+        <method name="login"></method>
+        <method name="autoLogin"></method>
+        <method name="logout"></method>
+        
+        <method name="sendText"></method>
+        <method name="sendImage"></method>
+        <method name="sendLocationMsg"></method>
+        <method name="sendAudio"></method>
+        <method name="sendVideo"></method>
+        <method name="sendFile"></method>
+        <method name="resendMessage"></method>
+        <method name="fetchMessageAttachment"></method>
+        <method name="allRecentSession"></method>
+        <method name="deleteMessage"></method>
+        <method name="deleteAllmessagesInSession"></method>
+        <method name="deleteRecentSession"></method>
+        <method name="deleteAllMessages"></method>
+        <method name="allUnreadCount"></method>
+        <method name="markAllMessagesReadInSession"></method>
+        
+        <method name="fetchMessageHistory"></method>
+        <method name="messagesInSession"></method>
+        <method name="searchMessages"></method>
+        
+        <method name="switchAudioOutputDevice"></method>
+        <method name="isPlaying"></method>
+        <method name="playAudio"></method>
+        <method name="stopPlay"></method>
+        <method name="isRecording"></method>
+        <method name="recordAudioForDuration"></method>
+        <method name="stopRecord"></method>
+        <method name="cancelRecord"></method>
+        
+        <method name="allMyTeams"></method>
+        <method name="teamById"></method>
+        <method name="fetchTeamInfo"></method>
+        <method name="createTeam"></method>
+        <method name="addUsers"></method>
+        <method name="applyToTeam"></method>
+        <method name="acceptInviteWithTeam"></method>
+        <method name="rejectInviteWithTeam"></method>
+        <method name="passApplyToTeam"></method>
+        <method name="rejectApplyToTeam"></method>
+        <method name="updateTeamName"></method>
+        <method name="updateTeamIntro"></method>
+        <method name="updateTeamAnnouncement"></method>
+        <method name="updateTeamJoinMode"></method>
+        <method name="addManagersToTeam"></method>
+        <method name="removeManagersFromTeam"></method>
+        <method name="transferManagerWithTeam"></method>
+        <method name="fetchTeamMembers"></method>
+        <method name="quitTeam"></method>
+        <method name="kickUsers"></method>
+        <method name="dismissTeam"></method>
+        <method name="updateNotifyStateForTeam"></method>
+        <method name="notifyForNewMsgForTeam"></method>
+        <method name="updateTeamCustomInfo"></method>
+        
+        <method name="fetchSystemNotifications"></method>
+        <method name="allNotificationsUnreadCount"></method>
+        <method name="deleteAllNotifications"></method>
+        <method name="markAllNotificationsAsRead"></method>
+        <method name="sendCustomNotification"></method>
+        
+        <method name="registerAPNS"></method>
+        <method name="getApnsSetting"></method>
+        <method name="updateApnsSetting"></method>
+        
+        <method name="userInfo"></method>
+        <method name="fetchUserInfos"></method>
+        <method name="updateMyUserInfo"></method>
+        
+        <method name="myFriends"></method>
+        <method name="requestFriend"></method>
+        <method name="deleteFriend"></method>
+        <method name="myBlackList"></method>
+        <method name="addToBlackList"></method>
+        <method name="removeFromBlackBlackList"></method>
+        <method name="isUserInBlackList"></method>
+        <method name="myMuteUserList"></method>
+        <method name="updateNotifyStateForUser"></method>
+        <method name="notifyForNewMsgForUser"></method>
+        
+        <method name="start"></method>
+        <method name="response"></method>
+        <method name="control"></method>
+        <method name="hangup"></method>
+        <method name="currentCallID"></method>
+        <method name="callNetStatus"></method>
+        <method name="initRemoteView"></method>
+        <method name="removeRemoteView"></method>
+        <method name="removeRemoteView"></method>
+        <method name="setMute"></method>
+        <method name="setSpeaker"></method>
+        <method name="switchCamera"></method>
+        <method name="setCameraDisable"></method>
+        <method name="startLocalRecording"></method>
+        <method name="stopLocalRecording"></method>
+    </plugin>
+</uexplugins>
