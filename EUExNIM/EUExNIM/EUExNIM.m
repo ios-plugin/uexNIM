@@ -34,6 +34,7 @@
     if(inArguments.count<1){
         return;
     }
+    
     id appInfo=[inArguments[0] JSONValue];
     [self.uexNIMMgr registerApp:[appInfo objectForKey:@"appKey"] apnsCertName:[appInfo objectForKey:@"apnsCertName"]];
 }
@@ -168,9 +169,14 @@
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NSString *content=[info objectForKey:@"content"];
-    
     NIMMessage *message = [[NIMMessage alloc] init];
     message.text    = content;
+    
+    NSDictionary *remoteExt=nil;
+    if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+    }
+    message.remoteExt=remoteExt;
     
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     
@@ -182,18 +188,29 @@
         return;
     }
     id info=[inArguments[0] JSONValue];
+    if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
+        return;
+    }
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     
     UIImage  *image = [UIImage imageWithContentsOfFile:[self absPath:[info objectForKey:@"filePath"]]];
     NIMImageObject * imageObject = [[NIMImageObject alloc] initWithImage:image];
+    imageObject.displayName=[info objectForKey:@"displayName"];
     if([info objectForKey:@"compressQuality"]){
         NIMImageOption *option       = [[NIMImageOption alloc] init];
         option.compressQuality=[[info objectForKey:@"compressQuality"] floatValue];
         imageObject.option=option;
     }
+    
     NIMMessage *message          = [[NIMMessage alloc] init];
     message.messageObject        = imageObject;
+    
+    NSDictionary *remoteExt=nil;
+    if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+    }
+    message.remoteExt=remoteExt;
     
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     
@@ -204,13 +221,23 @@
         return;
     }
     id info=[inArguments[0] JSONValue];
+    if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
+        return;
+    }
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NSString *filePath=[info objectForKey:@"filePath"];
     
     NIMAudioObject *audioObject = [[NIMAudioObject alloc] initWithSourcePath:[self absPath:filePath]];
+    
     NIMMessage *message        = [[NIMMessage alloc] init];
     message.messageObject      = audioObject;
+    
+    NSDictionary *remoteExt=nil;
+    if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+    }
+    message.remoteExt=remoteExt;
     
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     
@@ -221,13 +248,24 @@
         return;
     }
     id info=[inArguments[0] JSONValue];
+    if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
+        return;
+    }
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NSString *filePath=[info objectForKey:@"filePath"];
     
     NIMVideoObject *videoObject = [[NIMVideoObject alloc] initWithSourcePath:[self absPath:filePath]];
+    videoObject.displayName=[info objectForKey:@"displayName"];
+    
     NIMMessage *message         = [[NIMMessage alloc] init];
     message.messageObject       = videoObject;
+    
+    NSDictionary *remoteExt=nil;
+    if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+    }
+    message.remoteExt=remoteExt;
     
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     
@@ -253,8 +291,15 @@
     NIMLocationObject *locationObject = [[NIMLocationObject alloc] initWithLatitude:latitude
                                                                           longitude:longitude
                                                                               title:title];
+    
     NIMMessage *message= [[NIMMessage alloc] init];
     message.messageObject= locationObject;
+    
+    NSDictionary *remoteExt=nil;
+    if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+    }
+    message.remoteExt=remoteExt;
     
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     
@@ -265,14 +310,24 @@
         return;
     }
     id info=[inArguments[0] JSONValue];
+    if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
+        return;
+    }
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NSString *filePath=[info objectForKey:@"filePath"];
     
     NIMFileObject *videoObject = [[NIMFileObject alloc] initWithSourcePath:[self absPath:filePath]];
     videoObject.displayName=[info objectForKey:@"displayName"];
+    
     NIMMessage *message         = [[NIMMessage alloc] init];
     message.messageObject       = videoObject;
+    
+    NSDictionary *remoteExt=nil;
+    if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+    }
+    message.remoteExt=remoteExt;
     
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     
@@ -292,8 +347,14 @@
 }
 -(NIMSession *) sessionWithType:(NSString *)sessionType sessionId:(NSString *)sessionId{
     NIMSession *session;
-    if([sessionType isEqual:@"1"]){
+    if([sessionType isKindOfClass:[NSNull class]] || [sessionId isKindOfClass:[NSNull class]]){
+        return nil;
+    }
+    if([sessionType isEqual:@"1"] || [sessionType integerValue]==1){
         session= [NIMSession session:sessionId type:NIMSessionTypeTeam];
+    }
+    else if([sessionType isEqual:@"2"] || [sessionType integerValue]==2){
+        session= [NIMSession session:sessionId type:NIMSessionTypeChatroom];
     }
     else{
         session= [NIMSession session:sessionId type:NIMSessionTypeP2P];
@@ -306,11 +367,9 @@
     }
     id info=[inArguments[0] JSONValue];
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-        sessionType=NIMSessionTypeTeam;
-    }
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     if([info objectForKey:@"messageId"]){
         NSString *messageId=[info objectForKey:@"messageId"];
         NSArray *messageIds=[NSArray arrayWithObject:messageId];
@@ -343,11 +402,9 @@
     NSMutableArray *messageIds=[NSMutableArray array];
     [messageIds addObject:messageId];
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-        sessionType=NIMSessionTypeTeam;
-    }
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     NSArray *messageArr=  [self.uexNIMMgr.SDK.conversationManager messagesInSession:session messageIds:messageIds];
     if(messageArr.count>0){
         NIMMessage *message=messageArr[0];
@@ -364,11 +421,9 @@
         removeRecentSession=[[info objectForKey:@"removeRecentSession"] boolValue];
     }
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-        sessionType=NIMSessionTypeTeam;
-    }
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     [self.uexNIMMgr.SDK.conversationManager deleteAllmessagesInSession:session removeRecentSession:removeRecentSession];
 }
 -(void) deleteRecentSession:(NSMutableArray *)inArguments{
@@ -378,8 +433,11 @@
     id info=[inArguments[0] JSONValue];
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
+    if([[info objectForKey:@"sessionType"] integerValue]==1){
         sessionType=NIMSessionTypeTeam;
+    }
+    else if([[info objectForKey:@"sessionType"] integerValue]==2){
+        sessionType=NIMSessionTypeChatroom;
     }
     NSMutableArray* sessionArr=[self.uexNIMMgr.SDK.conversationManager.allRecentSessions mutableCopy];
     for(NIMRecentSession *session in sessionArr ){
@@ -413,11 +471,9 @@
     }
     id info=[inArguments[0] JSONValue];
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-        sessionType=NIMSessionTypeTeam;
-    }
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     [self.uexNIMMgr.SDK.conversationManager markAllMessagesReadInSession:session];
 }
 
@@ -428,10 +484,9 @@
     }
     id info=[inArguments[0] JSONValue];
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-        sessionType=NIMSessionTypeTeam;
-    }
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
+    
     NSInteger limit=100;
     if([info objectForKey:@"limit"]){
         limit=[[info objectForKey:@"limit"] integerValue];
@@ -451,10 +506,8 @@
     searchOpt.sync       = YES;
     searchOpt.limit      = limit;
     searchOpt.order=NIMMessageSearchOrderDesc;
-    if([info objectForKey:@"order"]){
-        if([[info objectForKey:@"order"] isEqual:@"1"]){
-            searchOpt.order=NIMMessageSearchOrderAsc;
-        }
+    if([info objectForKey:@"order"] && [[info objectForKey:@"order"] integerValue]==1){
+        searchOpt.order=NIMMessageSearchOrderAsc;
     }
     if([info objectForKey:@"syno"]){
         if([[info objectForKey:@"syno"] boolValue]==NO){
@@ -463,7 +516,6 @@
     }
     
     
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
     [self.uexNIMMgr.SDK.conversationManager fetchMessageHistory:session option:searchOpt result:^(NSError *error, NSArray *messages) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if(error){
@@ -486,15 +538,14 @@
     }
     id info=[inArguments[0] JSONValue];
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-        sessionType=NIMSessionTypeTeam;
-    }
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
+    
     NSInteger limit=100;
     if([info objectForKey:@"limit"]){
         limit=[[info objectForKey:@"limit"] integerValue];
     }
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
     NIMMessage *SMessage=nil;
     if([info objectForKey:@"messageId"]){
         NSString *messageId=[info objectForKey:@"messageId"];
@@ -523,10 +574,9 @@
     }
     id info=[inArguments[0] JSONValue];
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-        sessionType=NIMSessionTypeTeam;
-    }
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
+    
     NSInteger limit=100;
     if([info objectForKey:@"limit"]){
         limit=[[info objectForKey:@"limit"] integerValue];
@@ -558,7 +608,6 @@
 //    if(order ==1){
 //        searchOpt.order=NIMMessageSearchOrderAsc;
 //    }
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
     
     [self.uexNIMMgr.SDK.conversationManager searchMessages:session option:searchOpt result:^(NSError *error, NSArray *messages) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
@@ -609,6 +658,9 @@
         return;
     }
     id info=[inArguments[0] JSONValue];
+    if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
+        return;
+    }
     NSString *filePath=[info objectForKey:@"filePath"];
     [self.uexNIMMgr playAudio:[self absPath:filePath]];
 }
@@ -1184,13 +1236,8 @@
     }
     id info=[inArguments[0] JSONValue];
     NSString *sessionId=[info objectForKey:@"sessionId"];
-    NIMSessionType sessionType=NIMSessionTypeP2P;
-    if([info objectForKey:@"sessionType"]){
-        if([[info objectForKey:@"sessionType"] isEqual:@"1"]){
-            sessionType=NIMSessionTypeTeam;
-        }
-    }
-    NIMSession *session=[NIMSession session:sessionId type:sessionType];
+    NSString *sessionType=[info objectForKey:@"sessionType"];
+    NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
     
     NIMCustomSystemNotification *notification = [[NIMCustomSystemNotification alloc] initWithContent:[info objectForKey:@"content"]];
     notification.apnsContent = [info objectForKey:@"apnsContent"];
@@ -1213,7 +1260,7 @@
     }
     if([info objectForKey:@"apnsWithPrefix"]){
         if([[info objectForKey:@"apnsWithPrefix"] boolValue]==YES){
-            setting.apnsWithPrefix = NO;
+            setting.apnsWithPrefix = YES;
         }
     }
     notification.setting = setting;
@@ -1270,12 +1317,12 @@
 + (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken{
     [[NIMSDK sharedSDK] updateApnsToken:deviceToken];
     NSMutableDictionary *dict = [NSMutableDictionary dictionary];
-    [dict setObject:deviceToken forKey:@"deviceToken"];
+    [dict setValue:deviceToken forKey:@"deviceToken"];
     [[NSNotificationCenter defaultCenter] postNotificationName:@"NIMRegisterAPNsSucceed" object:nil userInfo:dict];
 }
 + (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error{
     NSMutableDictionary *dict = [NSMutableDictionary dictionary];
-    [dict setObject:error forKey:@"error"];
+    [dict setValue:error forKey:@"error"];
     [[NSNotificationCenter defaultCenter] postNotificationName:@"NIMRegisterAPNsFail" object:nil userInfo:dict];
 }
 -(void)getApnsSetting:(NSMutableArray *)inArguments{
@@ -1379,7 +1426,7 @@
                @(NIMUserInfoUpdateTagEmail):[info objectForKey:@"email"],
                @(NIMUserInfoUpdateTagBirth):[info objectForKey:@"birth"],
                @(NIMUserInfoUpdateTagMobile):[info objectForKey:@"mobile"],
-               @(NIMUserInfoUpdateTagEx):[info objectForKey:@"ex"],
+               @(NIMUserInfoUpdateTagExt):[info objectForKey:@"ext"],
                };
     [self.uexNIMMgr.SDK.userManager updateMyUserInfo:userInfo completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
@@ -1882,4 +1929,316 @@
 //}
 
 
+#pragma mark -9.聊天室
+-(void)enterChatRoom:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    id extension=[info objectForKey:@"extension"];
+    id notifyExtension=[info objectForKey:@"notifyExtension"];
+    NSString *roomExt, *roomNotifyExt;
+    if(extension && [extension isKindOfClass:[NSDictionary class]]){
+        roomExt=[extension JSONFragment];
+    }
+    else{
+        roomExt=extension;
+    }
+    if(notifyExtension && [notifyExtension isKindOfClass:[NSDictionary class]]){
+        roomNotifyExt=[notifyExtension JSONFragment];
+    }
+    else{
+        roomNotifyExt=notifyExtension;
+    }
+    
+    NIMChatroomEnterRequest *request=[NIMChatroomEnterRequest alloc];
+    request.roomId=roomId;
+    request.roomExt=roomExt;
+    request.roomNotifyExt=roomNotifyExt;
+    request.roomNickname=[info objectForKey:@"nickName"];
+    request.roomAvatar=[info objectForKey:@"avatar"];
+    [self.uexNIMMgr.SDK.chatroomManager enterChatroom:request completion:^(NSError *error, NIMChatroom *chatroom, NIMChatroomMember *me) {
+        if(error){
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbEnterChatRoom" parameter:@{@"error":@(error.code)}];
+        }
+        else{
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbEnterChatRoom" parameter:@{@"error":@""}];
+        }
+    }];
+    
+}
+-(void)exitChatRoom:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+   
+    [self.uexNIMMgr.SDK.chatroomManager exitChatroom:roomId completion:^(NSError *error) {
+        if(error){
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbExitChatRoom" parameter:@{@"error":@(error.code)}];
+        }
+        else{
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbExitChatRoom" parameter:@{@"error":@""}];
+        }
+    }];
+}
+-(void)getChatRoomHistoryMsg:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSTimeInterval startTime=0;
+    if([info objectForKey:@"startTime"]){
+        startTime=[[info objectForKey:@"startTime"] doubleValue];
+    }
+    NSUInteger limit=10;
+    if([info objectForKey:@"limit"]){
+        startTime=[[info objectForKey:@"limit"] integerValue];
+    }
+    
+    NIMHistoryMessageSearchOption *option =[NIMHistoryMessageSearchOption alloc];
+    option.startTime=startTime;
+    option.limit=limit;
+    
+    [self.uexNIMMgr.SDK.chatroomManager fetchMessageHistory:roomId option:option result:^(NSError *error, NSArray *messages) {
+        NSMutableArray *msgArr=[NSMutableArray array];
+        NSMutableDictionary *result=[NSMutableDictionary dictionary];
+        if(error){
+            [result setValue:@(error.code) forKey:@"error"];
+            [result setValue:@"" forKey:@"messages"];
+        }
+        else{
+            for (NIMMessage *message in messages) {
+                [msgArr addObject:[self.uexNIMMgr analyzeWithNIMMessage:message]];
+            }
+            [result setValue:@"" forKey:@"error"];
+            [result setValue:msgArr forKey:@"messages"];
+        }
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomHistoryMsg" parameter:result];
+    }];
+}
+-(void)getChatRoomInfo:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    
+    [self.uexNIMMgr.SDK.chatroomManager fetchChatroomInfo:roomId completion:^(NSError *error, NIMChatroom *chatroom) {
+        if(error){
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomInfo" parameter:@{@"error":@(error.code),@"data":@""}];
+        }
+        else{
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomInfo" parameter:@{@"error":@"",@"data":[self.uexNIMMgr analyzeWithNIMChatroom:chatroom]}];
+        }
+    }];
+}
+-(void)getChatRoomMembers:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSInteger limit=10;
+    if([info objectForKey:@"limit"]){
+        limit=[[info objectForKey:@"limit"] integerValue]?:10;
+    }
+    
+    NIMChatroomFetchMemberType type=NIMChatroomFetchMemberTypeRegular;
+    if([info objectForKey:@"type"] && [[info objectForKey:@"type"] integerValue]==1){
+        type=NIMChatroomFetchMemberTypeTemp;
+    }
+    else if ([info objectForKey:@"type"] && [[info objectForKey:@"type"] integerValue]==2){
+        type=NIMChatroomFetchMemberTypeRegularOnline;
+    }
+    
+    NIMChatroomMemberRequest *request=[NIMChatroomMemberRequest alloc];
+    
+//    NIMChatroomMember *lastMember=[[NIMChatroomMember alloc] init];
+//    lastMember.userId=@"appcanuser1";
+//    lastMember.enterTimeInterval=111111;
+    
+    NIMChatroomMember *lastMember=nil;
+    request.roomId=roomId;
+    request.limit=limit;
+    request.type=type;
+    request.lastMember=lastMember;
+    if([info objectForKey:@"userId"] && ![[info objectForKey:@"userId"] isEqual:@""]){
+        NSArray *userIds=[[NSArray alloc]initWithObjects:[info objectForKey:@"userId"], nil];
+        NIMChatroomMembersByIdsRequest *request2=[NIMChatroomMembersByIdsRequest alloc];
+        request2.roomId=roomId;
+        request2.userIds=userIds;
+        [self.uexNIMMgr.SDK.chatroomManager fetchChatroomMembersByIds:request2 completion:^(NSError *error, NSArray *members) {
+            
+            if(!error && members.count>0){
+                request.lastMember=members[0];
+            }
+            [self getChatRoomMembersFromMember:request];
+        }];
+    }
+    else{
+        [self getChatRoomMembersFromMember:request];
+    }
+    
+}
+-(void)getChatRoomMembersFromMember:(NIMChatroomMemberRequest *)request{
+    
+    [self.uexNIMMgr.SDK.chatroomManager fetchChatroomMembers:request completion:^(NSError *error, NSArray *members) {
+        NSMutableArray *memberArr=[NSMutableArray array];
+        NSMutableDictionary *result=[NSMutableDictionary dictionary];
+        if(error){
+            [result setValue:@(error.code) forKey:@"error"];
+            [result setValue:@"" forKey:@"data"];
+        }
+        else{
+            for (NIMChatroomMember *member in members) {
+                [memberArr addObject:[self.uexNIMMgr analyzeWithNIMChatroomMember:member]];
+            }
+            [result setValue:@"" forKey:@"error"];
+            [result setValue:memberArr forKey:@"data"];
+        }
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomMembers" parameter:result];
+    }];
+}
+
+-(void)getChatRoomMembersByIds:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSArray *userIds=nil;
+    if([info objectForKey:@"userIds"]){
+        if([[info objectForKey:@"userIds"] isKindOfClass:[NSArray class]]){
+            userIds=[info objectForKey:@"userIds"];
+        }
+        else{
+            userIds=[[info objectForKey:@"userIds"] JSONValue];
+        }
+    }
+    
+    NIMChatroomMembersByIdsRequest *request=[NIMChatroomMembersByIdsRequest alloc];
+    request.roomId=roomId;
+    request.userIds=userIds;
+    [self.uexNIMMgr.SDK.chatroomManager fetchChatroomMembersByIds:request completion:^(NSError *error, NSArray *members) {
+        NSMutableArray *memberArr=[NSMutableArray array];
+        NSMutableDictionary *result=[NSMutableDictionary dictionary];
+        if(error){
+            [result setValue:@(error.code) forKey:@"error"];
+            [result setValue:@"" forKey:@"data"];
+        }
+        else{
+            for (NIMChatroomMember *member in members) {
+                [memberArr addObject:[self.uexNIMMgr analyzeWithNIMChatroomMember:member]];
+            }
+            [result setValue:@"" forKey:@"error"];
+            [result setValue:memberArr forKey:@"data"];
+        }
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomMembers" parameter:result];
+    }];
+    
+}
+-(void)addUserToBlackList:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSString *userId=[info objectForKey:@"userId"];
+    bool enable=YES;
+    if([info objectForKey:@"isAdd"] && [[info objectForKey:@"isAdd"] boolValue]==NO){
+        enable=NO;
+    }
+    
+    NIMChatroomMemberUpdateRequest *request=[NIMChatroomMemberUpdateRequest alloc];
+    request.roomId=roomId;
+    request.userId=userId;
+    request.enable=enable;
+    
+    [self.uexNIMMgr.SDK.chatroomManager updateMemberBlack:request completion:^(NSError *error) {
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbAddUserToBlackList" parameter:@{@"error":error?@(error.code):@""}];
+    }];
+}
+-(void)muteUser:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSString *userId=[info objectForKey:@"userId"];
+    bool enable=YES;
+    if([info objectForKey:@"isMute"] && [[info objectForKey:@"isMute"] boolValue]==NO){
+        enable=NO;
+    }
+    
+    NIMChatroomMemberUpdateRequest *request=[NIMChatroomMemberUpdateRequest alloc];
+    request.roomId=roomId;
+    request.userId=userId;
+    request.enable=enable;
+    
+    [self.uexNIMMgr.SDK.chatroomManager updateMemberMute:request completion:^(NSError *error) {
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbMuteUser" parameter:@{@"error":error?@(error.code):@""}];
+    }];
+}
+-(void)setAdmin:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSString *userId=[info objectForKey:@"userId"];
+    bool enable=YES;
+    if([info objectForKey:@"isAdmin"] && [[info objectForKey:@"isAdmin"] boolValue]==NO){
+        enable=NO;
+    }
+    
+    NIMChatroomMemberUpdateRequest *request=[NIMChatroomMemberUpdateRequest alloc];
+    request.roomId=roomId;
+    request.userId=userId;
+    request.enable=enable;
+    
+    [self.uexNIMMgr.SDK.chatroomManager markMemberManager:request completion:^(NSError *error) {
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbSetAdmin" parameter:@{@"error":error?@(error.code):@""}];
+    }];
+}
+-(void)setNormal:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSString *userId=[info objectForKey:@"userId"];
+    bool enable=YES;
+    if([info objectForKey:@"isNormal"] && [[info objectForKey:@"isNormal"] boolValue]==NO){
+        enable=NO;
+    }
+    
+    NIMChatroomMemberUpdateRequest *request=[NIMChatroomMemberUpdateRequest alloc];
+    request.roomId=roomId;
+    request.userId=userId;
+    request.enable=enable;
+    
+    [self.uexNIMMgr.SDK.chatroomManager markNormalMember:request completion:^(NSError *error) {
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbSetNormal" parameter:@{@"error":error?@(error.code):@""}];
+    }];
+}
+-(void)kickMemberFromChatRoom:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return;
+    }
+    id info=[inArguments[0] JSONValue];
+    NSString *roomId=[info objectForKey:@"roomId"];
+    NSString *userId=[info objectForKey:@"userId"];
+    
+    NIMChatroomMemberKickRequest *request=[NIMChatroomMemberKickRequest alloc];
+    request.roomId=roomId;
+    request.userId=userId;
+    
+    [self.uexNIMMgr.SDK.chatroomManager kickMember:request completion:^(NSError *error) {
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbKickMemberFromChatRoom" parameter:@{@"error":error?@(error.code):@""}];
+    }];
+}
 @end

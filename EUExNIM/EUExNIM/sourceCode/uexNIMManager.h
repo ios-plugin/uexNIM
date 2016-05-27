@@ -12,7 +12,7 @@
 #import "EUExNIM.h"
 #import "NTESGLView.h"
 
-@interface uexNIMManager : NSObject<NIMLoginManagerDelegate,NIMMediaManagerDelgate,NIMNetCallManagerDelegate,NIMSystemNotificationManagerDelegate,NIMTeamManagerDelegate,NIMUserManagerDelegate,NIMConversationManagerDelegate,NIMChatManagerDelegate>
+@interface uexNIMManager : NSObject<NIMLoginManagerDelegate,NIMMediaManagerDelgate,NIMNetCallManagerDelegate,NIMSystemNotificationManagerDelegate,NIMTeamManagerDelegate,NIMUserManagerDelegate,NIMConversationManagerDelegate,NIMChatManagerDelegate,NIMChatroomManagerDelegate>
 @property (nonatomic ,weak) NIMSDK *SDK;
 @property (nonatomic,strong) dispatch_queue_t callBackDispatchQueue;
 @property (nonatomic,weak) NIMMessage *message;
@@ -32,6 +32,8 @@
 -(NSMutableDictionary*)analyzeWithNIMTeamMember:(NIMTeamMember *)member;
 -(NSMutableDictionary*)analyzeWithSystemNotification:(NIMSystemNotification *)notification;
 -(NSMutableDictionary*)analyzeWithNIMUser:(NIMUser *)userl;
+-(NSMutableDictionary*)analyzeWithNIMChatroom:(NIMChatroom *)room;
+-(NSMutableDictionary*)analyzeWithNIMChatroomMember:(NIMChatroomMember *)member;
 
 -(void)playAudio:(NSString *)filePath;
 

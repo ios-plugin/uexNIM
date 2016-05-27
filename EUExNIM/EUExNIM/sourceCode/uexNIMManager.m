@@ -65,6 +65,7 @@
     [_SDK.userManager addDelegate:self];
     [_SDK.systemNotificationManager addDelegate:self];
     [_SDK.netCallManager addDelegate:self];
+    [_SDK.chatroomManager addDelegate:self];
     //[_SDK.rtsManager addDelegate:self];
     
 }
@@ -76,6 +77,7 @@
     [_SDK.userManager removeDelegate:self];
     [_SDK.systemNotificationManager removeDelegate:self];
     [_SDK.netCallManager removeDelegate:self];
+    [_SDK.chatroomManager removeDelegate:self];
     //[_SDK.rtsManager removeDelegate:self];
     
 }
@@ -314,12 +316,12 @@
 #pragma mark -9.用户资料托管
 - (void)onUserInfoChanged:(NIMUser *)user{
     NSMutableDictionary *result=[self analyzeWithNIMUser:user];
-    [self callBackJsonWithFunction:@"onUserInfoChanged" parameter:result];
+    [self callBackJsonWithFunction:@"onUserInfoChanged" parameter:@{@"user":result}];
 }
 #pragma mark -10.用户关系托管
 - (void)onFriendChanged:(NIMUser *)user{
     NSMutableDictionary *result=[self analyzeWithNIMUser:user];
-    [self callBackJsonWithFunction:@"onFriendChanged" parameter:result];
+    [self callBackJsonWithFunction:@"onFriendChanged" parameter:@{@"user":result}];
 }
 - (void)onBlackListChanged{
     [self callBackJsonWithFunction:@"onBlackListChanged" parameter:nil];
@@ -444,6 +446,18 @@
 //}
 
 
+#pragma mark -9.聊天室
+
+- (void)chatroom:(NSString *)roomId connectionStateChanged:(NIMChatroomConnectionState)state{
+    [self callBackJsonWithFunction:@"onChatRoomStatusChanged" parameter:@{@"roomId":roomId,@"status":@(state)}];
+}
+- (void)chatroom:(NSString *)roomId autoLoginFailed:(NSError *)error{
+
+}
+- (void)chatroom:(NSString *)roomId beKicked:(NIMChatroomKickReason)reason{
+     [self callBackJsonWithFunction:@"onChatRoomKickOutEvent" parameter:@{@"roomId":roomId,@"code":@(reason)}];
+}
+
 #pragma mark -analyze
 -(NSMutableDictionary*)analyzeWithCustomNotification:(NIMCustomSystemNotification *)notification{
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
@@ -482,7 +496,10 @@
     [result setValue:@(message.isDeleted)?:@"" forKey:@"isDeleted"];
     [result setValue:@(message.isOutgoingMsg)?:@"" forKey:@"isOutgoingMsg"];
     [result setValue:@(message.isReceivedMsg)?:@"" forKey:@"isReceivedMsg"];
+    [result setValue:message.remoteExt?:@"" forKey:@"ext"];
     
+    NIMNotificationContent *notificationContent;
+    NSMutableArray *targets=[NSMutableArray array];
     switch (message.messageType) {
         case NIMMessageTypeImage:
             [result setValue:@([(NIMImageObject *)message.messageObject fileLength])?:@"" forKey:@"fileLength"];
@@ -490,6 +507,7 @@
             [result setValue:[(NIMImageObject *)message.messageObject thumbPath]?:@"" forKey:@"thumbPath"];
             [result setValue:[(NIMImageObject *)message.messageObject thumbUrl]?:@"" forKey:@"thumbUrl"];
             [result setValue:[(NIMImageObject *)message.messageObject url]?:@"" forKey:@"url"];
+            [result setValue:[(NIMImageObject *)message.messageObject displayName]?:@"" forKey:@"displayName"];
             
             break;
         case NIMMessageTypeAudio:
@@ -504,6 +522,7 @@
             [result setValue:[(NIMVideoObject *)message.messageObject coverUrl]?:@"" forKey:@"coverUrl"];
             [result setValue:[(NIMVideoObject *)message.messageObject coverPath]?:@"" forKey:@"coverPath"];
             [result setValue:[(NIMVideoObject *)message.messageObject url]?:@"" forKey:@"url"];
+            [result setValue:[(NIMVideoObject *)message.messageObject displayName]?:@"" forKey:@"displayName"];
             [result setValue:@([(NIMVideoObject *)message.messageObject duration])?:@"" forKey:@"duration"];
             
             break;
@@ -521,8 +540,47 @@
             
             break;
         case NIMMessageTypeNotification:
+            
             [result setValue:@([(NIMNotificationObject *)message.messageObject notificationType])?:@"" forKey:@"notificationType"];
-            [result setValue:[(NIMNotificationObject *)message.messageObject content]?:@"" forKey:@"content"];
+            //[result setValue:[(NIMNotificationObject *)message.messageObject content]?:@"" forKey:@"content"];
+            notificationContent=[(NIMNotificationObject *)message.messageObject content];
+            switch ([(NIMNotificationObject *)message.messageObject notificationType]) {
+                case NIMNotificationTypeTeam:
+                    
+                    [result setValue:@([(NIMTeamNotificationContent *)notificationContent operationType]) forKey:@"eventType"];
+                    [result setValue:[(NIMTeamNotificationContent *)notificationContent sourceID]forKey:@"operator"];
+                    [result setValue:[(NIMTeamNotificationContent *)notificationContent targetIDs]?:@"" forKey:@"targets"];
+                    
+                    break;
+                case NIMNotificationTypeNetCall:
+                    
+                    [result setValue:@([(NIMNetCallNotificationContent *)notificationContent callType]) forKey:@"callType"];
+                    [result setValue:@([(NIMNetCallNotificationContent *)notificationContent eventType]) forKey:@"eventType"];
+                    [result setValue:@([(NIMNetCallNotificationContent *)notificationContent callID]) forKey:@"callID"];
+                    [result setValue:@([(NIMNetCallNotificationContent *)notificationContent duration]) forKey:@"callDuration"];
+                    
+                    break;
+                case NIMNotificationTypeChatroom:
+                    
+                    [result setValue:@([(NIMChatroomNotificationContent *)notificationContent eventType])?:@"" forKey:@"eventType"];
+                    [result setValue:[(NIMChatroomNotificationContent *)notificationContent source].userId?:@"" forKey:@"operator"];
+//                    [result setValue:[(NIMChatroomNotificationContent *)notificationContent source].nick?:@"" forKey:@"operatorNick"];
+//                    [result setValue:[(NIMChatroomNotificationContent *)notificationContent notifyExt]?[[(NIMChatroomNotificationContent *)notificationContent notifyExt] JSONValue]:@"" forKey:@"notifyExt"];
+                    
+                    if([(NIMChatroomNotificationContent *)notificationContent targets]){
+                        for (NIMChatroomMember *member in [(NIMChatroomNotificationContent *)notificationContent targets]) {
+                            [targets addObject:member.userId];
+                        }
+                    }
+                    [result setValue:targets?:@"" forKey:@"targets"];
+                    [result setValue:[(NIMChatroomNotificationContent *)notificationContent notifyExt]?[[(NIMChatroomNotificationContent *)notificationContent notifyExt] JSONValue]:@"" forKey:@"notifyExtension"];
+                    
+                    break;
+                    
+                default:
+                    break;
+            }
+            
             
             break;
             
@@ -587,7 +645,33 @@
     [resultDic setValue:user.email?:@"" forKey:@"email"];
     [resultDic setValue:user.birth?:@"" forKey:@"birth"];
     [resultDic setValue:user.mobile?:@"" forKey:@"mobile"];
-    [resultDic setValue:user.ex?:@"" forKey:@"ex"];
+    [resultDic setValue:user.ext?:@"" forKey:@"ext"];
+    
+    return resultDic;
+}
+-(NSMutableDictionary*)analyzeWithNIMChatroom:(NIMChatroom *)room{
+    NSMutableDictionary *resultDic=[NSMutableDictionary dictionary];
+    [resultDic setValue:room.roomId?:@"" forKey:@"roomId"];
+    [resultDic setValue:room.name?:@"" forKey:@"name"];
+    [resultDic setValue:room.announcement?:@"" forKey:@"announcement"];
+    [resultDic setValue:room.creator?:@"" forKey:@"creator"];
+    [resultDic setValue:@(room.onlineUserCount)?:@"" forKey:@"onlineUserCount"];
+    [resultDic setValue:room.broadcastUrl?:@"" forKey:@"broadcastUrl"];
+    [resultDic setValue:room.ext?[room.ext JSONValue]:@"" forKey:@"extention"];
+    
+    return resultDic;
+}
+-(NSMutableDictionary*)analyzeWithNIMChatroomMember:(NIMChatroomMember *)member{
+    NSMutableDictionary *resultDic=[NSMutableDictionary dictionary];
+    [resultDic setValue:member.userId?:@"" forKey:@"userId"];
+    [resultDic setValue:member.roomNickname?:@"" forKey:@"nick"];
+    [resultDic setValue:member.roomAvatar?:@"" forKey:@"avatar"];
+    [resultDic setValue:@(member.type)?:@"" forKey:@"memberType"];
+    [resultDic setValue:@(member.isInBlackList)?:@"" forKey:@"isInBlackList"];
+    [resultDic setValue:@(member.isMuted)?:@"" forKey:@"isMuted"];
+    [resultDic setValue:@(member.isOnline)?:@"" forKey:@"isOnline"];
+    [resultDic setValue:@(member.enterTimeInterval)?:@"" forKey:@"enterTime"];
+    [resultDic setValue:member.roomExt?[member.roomExt JSONValue]:@"" forKey:@"extention"];
     
     return resultDic;
 }

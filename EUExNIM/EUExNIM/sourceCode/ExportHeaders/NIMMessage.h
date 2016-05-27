@@ -18,6 +18,9 @@
 #import "NIMNotificationObject.h"
 #import "NIMTipObject.h"
 #import "NIMMessageSetting.h"
+#import "NIMMessageReceipt.h"
+
+@class NIMMessageChatroomExtension;
 
 /**
  *  消息送达状态枚举
@@ -115,21 +118,27 @@ typedef NS_ENUM(NSInteger, NIMMessageAttachmentDownloadState){
 
 /**
  *  消息推送Payload
- *  @discussion 可以通过这个字段定义消息推送Payload,支持字段参考苹果技术文档,转成JSON后长度限制为2K
+ *  @discussion 可以通过这个字段定义消息推送Payload,支持字段参考苹果技术文档,转成 JSON 后长度限制为 2K
  */
-@property (nonatomic,strong)                NSDictionary *apnsPayload;
+@property (nonatomic,copy)                NSDictionary *apnsPayload;
 
 /**
  *  服务器扩展
- *  @discussion 这个字段会发送到其他端,上层需要保证NSDictionary可以转换为JSON,转成JSON后长度限制为1K
+ *  @discussion 客户端可以设置这个字段,这个字段将在本地存储且发送至对端,上层需要保证 NSDictionary 可以转换为 JSON
  */
-@property (nonatomic,strong)                NSDictionary    *remoteExt;
+@property (nonatomic,copy)                NSDictionary    *remoteExt;
 
 /**
  *  客户端本地扩展
- *  @discussion 当前字段只在本地存储，不会发送至对端,上层需要保证NSDictionary可以转换为JSON
+ *  @discussion 客户端可以设置这个字段，这个字段只在本地存储,不会发送至对端,,上层需要保证 NSDictionary 可以转换为 JSON
  */
-@property (nonatomic,strong)                NSDictionary    *localExt;
+@property (nonatomic,copy)                NSDictionary    *localExt;
+
+/**
+ *  消息拓展字段
+ *  @discussion 服务器下发的消息拓展字段，并不在本地做持久化，目前只有聊天室中的消息才有该字段(NIMMessageChatroomExtension)
+ */
+@property (nonatomic,strong)                id messageExt;
 
 /**
  *  消息发送时间
@@ -172,6 +181,13 @@ typedef NS_ENUM(NSInteger, NIMMessageAttachmentDownloadState){
  *  @discussion 已删除的消息在获取本地消息列表时会被过滤掉，只有根据messageId获取消息的接口可能会返回已删除消息。
  */
 @property (nonatomic,assign,readonly)       BOOL isDeleted;
+
+
+/**
+ *  对端是否已读
+ *  @discussion 只有当当前消息为 P2P 消息且 isOutgoingMsg 为 YES 时这个字段才有效，需要对端调用过发送已读回执的接口
+ */
+@property (nonatomic,assign,readonly)       BOOL isRemoteRead;
 
 /**
  *  消息发送者名字
