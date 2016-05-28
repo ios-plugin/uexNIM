@@ -101,5 +101,17 @@
         <method name="setCameraDisable"></method>
         <method name="startLocalRecording"></method>
         <method name="stopLocalRecording"></method>
+        
+        <method name="enterChatRoom"></method>
+        <method name="exitChatRoom"></method>
+        <method name="getChatRoomHistoryMsg"></method>
+        <method name="getChatRoomInfo"></method>
+        <method name="getChatRoomMembers"></method>
+        <method name="getChatRoomMembersByIds"></method>
+        <method name="addUserToBlackList"></method>
+        <method name="muteUser"></method>
+        <method name="setAdmin"></method>
+        <method name="setNormal"></method>
+        <method name="kickMemberFromChatRoom"></method>
     </plugin>
 </uexplugins>
