@@ -10,6 +10,8 @@
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #import<UIKit/UIKit.h>
+#import "NIMAVChat.h"
+#import "NIMSDKHeaders.h"
 #import "EUtility.h"
 #define UEX_LOCALIZEDSTRING(...) [EUtility uexPlugin:@"uexNIM" localizedString:__VA_ARGS__,nil]
 #endif

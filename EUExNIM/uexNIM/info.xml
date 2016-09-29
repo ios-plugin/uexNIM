@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <uexplugins>
     <plugin
-        uexName="uexNIM" version="3.0.2" build="2">
-        <info>2:升级SDK到2.4.0-支持IPv6；打包需用仅支持iOS8.0+的引擎打包</info>
+        uexName="uexNIM" version="3.0.3" build="3">
+        <info>3:升级SDK，支持iOS10</info>
+        <build>2:升级SDK到2.4.0-支持IPv6；打包需用仅支持iOS8.0+的引擎打包</build>
         <build>1:增加聊天室功能</build>
         <build>0:新增网易云信插件</build>
     </plugin>
