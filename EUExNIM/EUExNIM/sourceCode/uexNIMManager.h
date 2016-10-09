@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "JSON.h"
 #import "EUtility.h"
 #import "EUExNIM.h"
 #import "NTESGLView.h"
@@ -24,7 +23,7 @@
 
 
 + (instancetype)sharedInstance;
--(void) registerApp:(NSString *)appKey apnsCertName:(NSString *)apnsCertName;
+-(void) registerApp:(NSString *)appKey apnsCertName:(NSString *)apnsCertName Function:(ACJSFunctionRef*)func;
 -(void)callBackJsonWithFunction:(NSString *)functionName parameter:(id)obj;
 -(NSMutableDictionary*)analyzeWithNIMMessage:(NIMMessage *)message;
 -(NSMutableDictionary*)analyzeWithNIMRecentSession:(NIMRecentSession *)recentSession;

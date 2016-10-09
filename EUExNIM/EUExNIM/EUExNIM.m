@@ -7,26 +7,27 @@
 //
 #import "uexNIMManager.h"
 #import "EUExNIM.h"
-#import "JSON.h"
+
 
 @interface EUExNIM()<NIMLoginManagerDelegate>
 
 
 @property (nonatomic,weak) uexNIMManager *uexNIMMgr;
 
+@property(nonatomic,strong)ACJSFunctionRef *registerAPNSFunc;
+
 @end
 
 
 @implementation EUExNIM
 
--(id)initWithBrwView:(EBrowserView *) eInBrwView {
-    self = [super initWithBrwView:eInBrwView];
-    if (self) {
+
+-(id)initWithWebViewEngine:(id<AppCanWebViewEngineObject>)engine{
+    if (self = [super initWithWebViewEngine:engine]) {
         self.uexNIMMgr=[uexNIMManager sharedInstance];
     }
     return self;
 }
-
 
 
 #pragma mark -1.registerApp
@@ -34,9 +35,8 @@
     if(inArguments.count<1){
         return;
     }
-    
-    id appInfo=[inArguments[0] JSONValue];
-    [self.uexNIMMgr registerApp:[appInfo objectForKey:@"appKey"] apnsCertName:[appInfo objectForKey:@"apnsCertName"]];
+    ACArgsUnpack(NSDictionary *appInfo,ACJSFunctionRef*func) = inArguments;
+    [self.uexNIMMgr registerApp:[appInfo objectForKey:@"appKey"] apnsCertName:[appInfo objectForKey:@"apnsCertName"] Function:func];
 }
 
 #pragma mark -2.登录与登出
@@ -44,7 +44,7 @@
     if(inArguments.count<1){
         return;
     }
-    id user=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *user, ACJSFunctionRef*func) = inArguments;
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     
     [[_uexNIMMgr.SDK loginManager] login:[user objectForKey:@"userId"] token:[[user objectForKey:@"password"] tokenByPassword] completion:^(NSError *error) {
@@ -54,6 +54,8 @@
             [result setValue:@(error.code) forKey:@"error"];
             [self.uexNIMMgr callBackJsonWithFunction:@"cbLogin" parameter:result ];
             
+            [func executeWithArguments:ACArgsPack(@(error.code),@"")];
+            
         }
         else{
             [result setValue:@"" forKey:@"error"];
@@ -61,6 +63,8 @@
             [result setValue:userId forKey:@"userId"];
             [result setValue:[NSNumber numberWithBool:YES] forKey:@"result"];
             [self.uexNIMMgr callBackJsonWithFunction:@"cbLogin" parameter:result ];
+            
+            [func executeWithArguments:ACArgsPack(@(0),userId)];
         }
     }];
     
@@ -69,16 +73,20 @@
     if(inArguments.count<1){
         return;
     }
-    id user=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *user) = inArguments;
     [[_uexNIMMgr.SDK loginManager] autoLogin:[user objectForKey:@"userId"] token:[[user objectForKey:@"password"] tokenByPassword] ];
 }
 -(void)logout:(NSMutableArray *)inArguments{
+    ACArgsUnpack(ACJSFunctionRef*func) = inArguments;
     [[self.uexNIMMgr.SDK loginManager] logout:^(NSError *error){
         if(error){
             [self.uexNIMMgr callBackJsonWithFunction:@"cbLogout" parameter:@{@"error":@(error.code)}];
+            
+            [func executeWithArguments:ACArgsPack(@(1),error.debugDescription)];
         }
         else{
             [self.uexNIMMgr callBackJsonWithFunction:@"cbLogout" parameter:@{@"error":@""}];
+             [func executeWithArguments:ACArgsPack(@(0),@"")];
         }
     }];
     
@@ -87,7 +95,7 @@
     if(inArguments.count<1){
         return;
     }
-    id user=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *user) = inArguments;
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     NSString *urlString = [@"https://app.netease.im/api" stringByAppendingString:@"/createDemoUser"];
     NSURL *url = [NSURL URLWithString:urlString];
@@ -102,50 +110,13 @@
     
     NSString *postData = [NSString stringWithFormat:@"username=%@&password=%@&nickname=%@",[user objectForKey:@"userId"],[[user objectForKey:@"password"] tokenByPassword],[user objectForKey:@"nickname"]];
     [request setHTTPBody:[postData dataUsingEncoding:NSUTF8StringEncoding]];
-    
-//    //AFNetWorking--
-//    AFHTTPRequestOperation *op = [[AFHTTPRequestOperation alloc] initWithRequest:request];
-//    [op setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-//        NSInteger statusCode = operation.response.statusCode;
-//        NSError *error = [NSError errorWithDomain:@"ntes domain"
-//                                             code:statusCode
-//                                         userInfo:nil];
-//        NSString *errorMsg;
-//        if (statusCode == 200 && [responseObject isKindOfClass:[NSData class]]) {
-//            NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:responseObject
-//                                                                 options:0
-//                                                                   error:nil];
-//            if ([dict isKindOfClass:[NSDictionary class]]) {
-//                NSInteger res = 0;
-//                if([[dict objectForKey:@"res"] isKindOfClass:[NSString class]]||[[dict objectForKey:@"res"] isKindOfClass:[NSNumber class]]){
-//                    res=[[dict objectForKey:@"res"] integerValue];
-//                }
-//                if (res == 200) {
-//                    error = nil;
-//                    [result setValue:[NSNumber numberWithBool:YES] forKey:@"result"];
-//                    [result setValue:errorMsg forKey:@"error"];
-//                }
-//                else
-//                {
-//                    error = [NSError errorWithDomain:@"ntes domain"
-//                                                code:res
-//                                            userInfo:nil];
-//                    errorMsg = dict[@"errmsg"];
-//                    [result setValue:[NSNumber numberWithBool:NO] forKey:@"result"];
-//                    [result setValue:errorMsg forKey:@"error"];
-//                }
-//                [self.uexNIMMgr callBackJsonWithFunction:@"cbRegisterUser" parameter:result];
-//            }
-//        }
-//    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-//        
-//    }];
-//    [op start];
-    
-    [NSURLConnection sendAsynchronousRequest:request queue:[[NSOperationQueue alloc] init] completionHandler:^(NSURLResponse *response, NSData *responseObject, NSError *connectionError) {
+    NSURLSession *session = [NSURLSession sharedSession];
+    NSURLSessionDownloadTask *task = [session downloadTaskWithRequest:request completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
+        NSLog(@"location:%@", location);
+        NSLog(@"thread:%@",[NSThread currentThread]);
+        NSData *responseObject = [NSData dataWithContentsOfURL:location];
         NSString *dataStr= [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
-        id dataInfo=[dataStr JSONValue];
-        
+        id dataInfo=[dataStr ac_JSONValue];
         NSInteger statusCode = [[dataInfo objectForKey:@"res"] integerValue];
         if (statusCode == 200) {
             [result setValue:[NSNumber numberWithBool:YES] forKey:@"result"];
@@ -158,6 +129,8 @@
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbRegisterUser" parameter:result];
     }];
+    
+    [task resume];
 }
 
 #pragma mark -3.基础消息功能
@@ -165,7 +138,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NSString *content=[info objectForKey:@"content"];
@@ -174,7 +148,7 @@
     
     NSDictionary *remoteExt=nil;
     if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
-        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] ac_JSONValue];
     }
     message.remoteExt=remoteExt;
     
@@ -187,7 +161,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
         return;
     }
@@ -208,7 +183,7 @@
     
     NSDictionary *remoteExt=nil;
     if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
-        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] ac_JSONValue];
     }
     message.remoteExt=remoteExt;
     
@@ -220,7 +195,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
         return;
     }
@@ -235,7 +211,7 @@
     
     NSDictionary *remoteExt=nil;
     if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
-        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] ac_JSONValue];
     }
     message.remoteExt=remoteExt;
     
@@ -247,7 +223,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
         return;
     }
@@ -263,7 +240,7 @@
     
     NSDictionary *remoteExt=nil;
     if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
-        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] ac_JSONValue];
     }
     message.remoteExt=remoteExt;
     
@@ -275,7 +252,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     double latitude=0;
@@ -297,7 +275,7 @@
     
     NSDictionary *remoteExt=nil;
     if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
-        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] ac_JSONValue];
     }
     message.remoteExt=remoteExt;
     
@@ -309,7 +287,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
         return;
     }
@@ -325,7 +303,7 @@
     
     NSDictionary *remoteExt=nil;
     if([info objectForKey:@"ext"] &&![[info objectForKey:@"ext"] isEqual:@""]){
-        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] JSONValue];
+        remoteExt=[[info objectForKey:@"ext"] isKindOfClass:[NSDictionary class]]?[info objectForKey:@"ext"] : [[info objectForKey:@"ext"] ac_JSONValue];
     }
     message.remoteExt=remoteExt;
     
@@ -365,7 +343,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     
@@ -397,7 +375,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *messageId=[info objectForKey:@"messageId"];
     NSMutableArray *messageIds=[NSMutableArray array];
     [messageIds addObject:messageId];
@@ -415,7 +393,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     BOOL removeRecentSession=YES;
     if([info objectForKey:@"removeRecentSession"]){
         removeRecentSession=[[info objectForKey:@"removeRecentSession"] boolValue];
@@ -430,7 +408,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NIMSessionType sessionType=NIMSessionTypeP2P;
     if([[info objectForKey:@"sessionType"] integerValue]==1){
@@ -451,7 +429,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     BOOL removeRecentSession=YES;
     if([info objectForKey:@"removeRecentSession"]){
         removeRecentSession=[[info objectForKey:@"removeRecentSession"] boolValue];
@@ -469,7 +448,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     
@@ -482,7 +461,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
@@ -520,6 +499,7 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if(error){
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1))];
         }
         else{
             [result setValue:@"" forKey:@"error"];
@@ -528,6 +508,7 @@
                 [msgList addObject:[self.uexNIMMgr analyzeWithNIMMessage:message]];
             }
             [result setValue:msgList forKey:@"messages"];
+            [func executeWithArguments:ACArgsPack(@(0),[@{@"messages":msgList} copy])];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchMessageHistory" parameter:result];
     }];
@@ -536,7 +517,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     
@@ -572,7 +553,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
@@ -595,7 +576,7 @@
     }
     NSMutableArray *fromIds=[NSMutableArray array];
     if([info objectForKey:@"fromIds"]){
-        fromIds=[[info objectForKey:@"fromIds"] JSONValue];
+        fromIds=[[info objectForKey:@"fromIds"] ac_JSONValue];
     }
     NIMMessageSearchOption *searchOpt = [[NIMMessageSearchOption alloc] init];
     searchOpt.startTime  = startTime;
@@ -604,10 +585,6 @@
     searchOpt.searchContent=keyword;
     searchOpt.fromIds=fromIds;
     searchOpt.order=NIMMessageSearchOrderDesc;
-//    NSInteger order=[[info objectForKey:@"order"] integerValue];
-//    if(order ==1){
-//        searchOpt.order=NIMMessageSearchOrderAsc;
-//    }
     
     [self.uexNIMMgr.SDK.conversationManager searchMessages:session option:searchOpt result:^(NSError *error, NSArray *messages) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
@@ -627,11 +604,12 @@
 }
 
 #pragma mark -5.语音录制及回放
--(void) switchAudioOutputDevice:(NSMutableArray *)inArguments{
+-(NSNumber*) switchAudioOutputDevice:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
-        return;
+        return @(NO);
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSInteger outputDevice=0;
     if([info objectForKey:@"outputDevice"]){
         outputDevice=[[info objectForKey:@"outputDevice"] integerValue];
@@ -646,18 +624,20 @@
     }
     [resultDic setValue:[NSNumber numberWithBool:result] forKey:@"result"];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbSwitchAudioOutputDevice" parameter:resultDic];
+    return @(result);
 }
--(void) isPlaying:(NSMutableArray *)inArguments{
+-(NSNumber*) isPlaying:(NSMutableArray *)inArguments{
     NSMutableDictionary *resultDic=[NSMutableDictionary dictionary];
     BOOL result=[self.uexNIMMgr.SDK.mediaManager isPlaying];
     [resultDic setValue:[NSNumber numberWithBool:result] forKey:@"result"];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbIsPlaying" parameter:resultDic];
+    return @(result);
 }
 -(void) playAudio:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     if([info objectForKey:@"filePath"]==[NSNull null] || [[info objectForKey:@"filePath"] isEqual:@""]){
         return;
     }
@@ -668,17 +648,18 @@
     [self.uexNIMMgr.SDK.mediaManager stopPlay];
 }
 
--(void) isRecording:(NSMutableArray *)inArguments{
+-(NSNumber*) isRecording:(NSMutableArray *)inArguments{
     NSMutableDictionary *resultDic=[NSMutableDictionary dictionary];
     BOOL result=[self.uexNIMMgr.SDK.mediaManager isRecording];
     [resultDic setValue:[NSNumber numberWithBool:result] forKey:@"result"];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbIsRecording" parameter:resultDic];
+    return @(result);
 }
 -(void) recordAudioForDuration:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSInteger duration;
     if ([info objectForKey:@"duration"]) {
         duration=[[info objectForKey:@"duration"] integerValue];
@@ -698,6 +679,7 @@
 #pragma mark -6.群组功能
 
 -(void) allMyTeams:(NSMutableArray *)inArguments{
+    ACArgsUnpack(ACJSFunctionRef *func) = inArguments;
     NSArray *allMyTeams= [self.uexNIMMgr.SDK.teamManager allMyTeams];
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     NSMutableArray *teams=[NSMutableArray array];
@@ -707,33 +689,47 @@
         }
     }
     [result setValue:teams forKey:@"teams"];
+    NSNumber*error = @(1);
+    if (teams && teams.count > 0) {
+        error =@(0);
+    }
     [self.uexNIMMgr callBackJsonWithFunction:@"cbAllMyTeams" parameter:result];
+    [func executeWithArguments:ACArgsPack(error,result)];
 }
 -(void) teamById:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NIMTeam *team=[self.uexNIMMgr.SDK.teamManager teamById:teamId];
+    NSNumber*error = @(1);
+    if (team) {
+        error =@(0);
+    }
     NSMutableDictionary *result=[self.uexNIMMgr analyzeWithNIMTeam:team];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbTeamById" parameter:@{@"team":result}];
+    [func executeWithArguments:ACArgsPack(error,result)];
     
 }
 -(void) fetchTeamInfo:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     [self.uexNIMMgr.SDK.teamManager fetchTeamInfo:teamId completion:^(NSError *error, NIMTeam *team) {
         if(error){
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),error.localizedDescription)];
         }
         else{
+            NSMutableDictionary *dic = [self.uexNIMMgr analyzeWithNIMTeam:team];
             [result setValue:@"" forKey:@"error"];
-            [result setValue:[self.uexNIMMgr analyzeWithNIMTeam:team] forKey:@"team"];
+            [result setValue:dic forKey:@"team"];
+            [func executeWithArguments:ACArgsPack(@(0),@{@"team":dic})];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchTeamInfo" parameter:result];
     }];
@@ -743,7 +739,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *name=@"";
     if([info objectForKey:@"name"]){
         name=[info objectForKey:@"name"];
@@ -789,15 +785,17 @@
     option.intro=intro;
     option.announcement=announcement;
     
-    NSArray *users=[[info objectForKey:@"users"] JSONValue];
+    NSArray *users=[[info objectForKey:@"users"] ac_JSONValue];
     [self.uexNIMMgr.SDK.teamManager createTeam:option users:users completion:^(NSError *error, NSString *teamId) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         [result setValue:teamId forKey:@"teamId"];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbCreateTeam" parameter:result];
     }];
@@ -807,9 +805,10 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
-    NSArray *users=[[info objectForKey:@"users"] JSONValue];
+    NSArray *users=[[info objectForKey:@"users"] ac_JSONValue];
     NSString *postscript=@"";
     if([info objectForKey:@"postscript"]){
         postscript=[info objectForKey:@"postscript"];
@@ -818,9 +817,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbAddUsers" parameter:result];
     }];
@@ -829,16 +830,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *invitorId=[info objectForKey:@"invitorId"];
     [self.uexNIMMgr.SDK.teamManager acceptInviteWithTeam:teamId invitorId:invitorId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbAcceptInviteWithTeam" parameter:result];
     }];
@@ -847,7 +850,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *invitorId=[info objectForKey:@"invitorId"];
     NSString *rejectReason=[info objectForKey:@"rejectReason"];
@@ -855,9 +858,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbRejectInviteWithTeam" parameter:result];
     }];
@@ -866,7 +871,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *message=[info objectForKey:@"message"];
     [self.uexNIMMgr.SDK.teamManager applyToTeam:teamId message:message completion:^(NSError *error,NIMTeamApplyStatus applyStatus) {
@@ -874,9 +879,11 @@
         [result setValue:@(applyStatus) forKey:@"applyStatus"];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbApplyToTeam" parameter:result];
     }];
@@ -885,7 +892,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *userId=[info objectForKey:@"userId"];
     [self.uexNIMMgr.SDK.teamManager passApplyToTeam:teamId userId:userId completion:^(NSError *error,NIMTeamApplyStatus applyStatus) {
@@ -893,9 +901,11 @@
         [result setValue:@(applyStatus) forKey:@"applyStatus"];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbPassApplyToTeam" parameter:result];
     }];
@@ -904,7 +914,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *userId=[info objectForKey:@"userId"];
     NSString *rejectReason=[info objectForKey:@"rejectReason"];
@@ -912,9 +922,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbRejectApplyToTeam" parameter:result];
     }];
@@ -923,16 +935,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *teamName=[info objectForKey:@"teamName"];
     [self.uexNIMMgr.SDK.teamManager updateTeamName:teamName teamId:teamId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateTeamName" parameter:result];
     }];
@@ -941,16 +955,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *intro=[info objectForKey:@"intro"];
     [self.uexNIMMgr.SDK.teamManager updateTeamIntro:intro teamId:teamId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateTeamIntro" parameter:result];
     }];
@@ -959,16 +975,19 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *announcement=[info objectForKey:@"announcement"];
     [self.uexNIMMgr.SDK.teamManager updateTeamAnnouncement:announcement teamId:teamId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateTeamAnnouncement" parameter:result];
     }];
@@ -977,7 +996,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NIMTeamJoinMode joinMode;
     if([info objectForKey:@"joinMode"]){
@@ -1001,9 +1021,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateTeamJoinMode" parameter:result];
     }];
@@ -1012,17 +1034,20 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
-    NSArray *users=[[info objectForKey:@"users"] JSONValue];
+    NSArray *users=[[info objectForKey:@"users"] ac_JSONValue];
     
     [self.uexNIMMgr.SDK.teamManager addManagersToTeam:teamId users:users completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbAddManagersToTeam" parameter:result];
     }];
@@ -1031,17 +1056,20 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+  
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
-    NSArray *users=[[info objectForKey:@"users"] JSONValue];
+    NSArray *users=[[info objectForKey:@"users"] ac_JSONValue];
     
     [self.uexNIMMgr.SDK.teamManager removeManagersFromTeam:teamId users:users completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbRemoveManagersFromTeam" parameter:result];
     }];
@@ -1050,7 +1078,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *newOwnerId=[info objectForKey:@"newOwnerId"];
     BOOL isLeave=NO;
@@ -1062,9 +1091,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbTransferManagerWithTeam" parameter:result];
     }];
@@ -1073,21 +1104,25 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     [self.uexNIMMgr.SDK.teamManager fetchTeamMembers:teamId completion:^(NSError *error, NSArray *members) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         NSMutableArray *membersArr=[NSMutableArray array];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
             for (NIMTeamMember *member in members) {
                 [membersArr addObject:[self.uexNIMMgr analyzeWithNIMTeamMember:member]];
             }
+            [result setValue:membersArr forKey:@"members"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
-        [result setValue:membersArr forKey:@"members"];
+        
         [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchTeamMembers" parameter:result];
     }];
 }
@@ -1095,15 +1130,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] ac_JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     [self.uexNIMMgr.SDK.teamManager quitTeam:teamId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbQuitTeam" parameter:result];
     }];
@@ -1112,16 +1150,19 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] ac_JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
-    NSArray *users=[[info objectForKey:@"users"] JSONValue];
+    NSArray *users=[[info objectForKey:@"users"] ac_JSONValue];
     [self.uexNIMMgr.SDK.teamManager kickUsers:users fromTeam:teamId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbKickUsers" parameter:result];
     }];
@@ -1130,15 +1171,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] ac_JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     [self.uexNIMMgr.SDK.teamManager dismissTeam:teamId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbDismissTeam" parameter:result];
     }];
@@ -1147,7 +1191,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] ac_JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     BOOL notify=NO;
     if([[info objectForKey:@"notify"] boolValue]){
@@ -1157,18 +1202,21 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateNotifyStateForTeam" parameter:result];
     }];
 }
--(void) notifyForNewMsgForTeam:(NSMutableArray *)inArguments{
+-(NSNumber*) notifyForNewMsgForTeam:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
-        return;
+        return @(NO);
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] ac_JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *teamId = [info objectForKey:@"teamId"];
     BOOL notifyForNewMsg=[self.uexNIMMgr.SDK.teamManager notifyForNewMsg:teamId];
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
@@ -1179,21 +1227,25 @@
         [result setValue:[NSNumber numberWithBool:NO] forKey:@"result"];
     }
     [self.uexNIMMgr callBackJsonWithFunction:@"cbNotifyForNewMsgForTeam" parameter:result];
+    return @(notifyForNewMsg);
 }
 -(void) updateTeamCustomInfo:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *teamId=[info objectForKey:@"teamId"];
     NSString *customInfo=[info objectForKey:@"info"];
     [self.uexNIMMgr.SDK.teamManager updateTeamCustomInfo:customInfo teamId:teamId  completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateTeamCustomInfo" parameter:result];
     }];
@@ -1205,36 +1257,53 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSInteger limit=0;
     if([info objectForKey:@"limit"]){
         limit=[[info objectForKey:@"limit"] integerValue];
     }
     NSArray *notifications=[[self.uexNIMMgr.SDK systemNotificationManager] fetchSystemNotifications:nil limit:limit];
     NSMutableArray *result=[NSMutableArray array];
+    NSNumber *error = @(1);
     if([notifications count]){
+        error = @(0);
         for (NIMSystemNotification *notification in notifications) {
             [result addObject:[self.uexNIMMgr analyzeWithSystemNotification:notification]];
         }
+        [func executeWithArguments:ACArgsPack(error,@{@"notifications":result})];
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchSystemNotifications" parameter:@{@"notifications":result}];
+    }else{
+         [func executeWithArguments:ACArgsPack(error)];
     }
-    [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchSystemNotifications" parameter:@{@"notifications":result}];
+    
 }
--(void) allNotificationsUnreadCount:(NSMutableArray *)inArguments{
+-(NSNumber*) allNotificationsUnreadCount:(NSMutableArray *)inArguments{
     NSInteger count=[[self.uexNIMMgr.SDK systemNotificationManager] allUnreadCount];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbAllNotificationsUnreadCount" parameter:@{@"count":@(count)}];
+    return @(count);
 }
 -(void) deleteAllNotifications:(NSMutableArray *)inArguments{
     [[self.uexNIMMgr.SDK systemNotificationManager] deleteAllNotifications];
 }
--(void) markAllNotificationsAsRead:(NSMutableArray *)inArguments{
-    [[self.uexNIMMgr.SDK systemNotificationManager] markAllNotificationsAsRead];
-    [self.uexNIMMgr callBackJsonWithFunction:@"cbMarkAllNotificationsAsRead" parameter:@{@"result":@(YES)}];
-}
--(void) sendCustomNotification:(NSMutableArray *)inArguments{
-    if(inArguments.count<1){
-        return;
+-(NSNumber*) markAllNotificationsAsRead:(NSMutableArray *)inArguments{
+    if ([[self.uexNIMMgr.SDK systemNotificationManager] respondsToSelector:@selector(markAllNotificationsAsRead)]) {
+        [[self.uexNIMMgr.SDK systemNotificationManager] markAllNotificationsAsRead];
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbMarkAllNotificationsAsRead" parameter:@{@"result":@(YES)}];
+        return @(YES);
+    }else{
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbMarkAllNotificationsAsRead" parameter:@{@"result":@(NO)}];
+        return @(NO);
     }
-    id info=[inArguments[0] JSONValue];
+    
+    
+}
+-(NSNumber*) sendCustomNotification:(NSMutableArray *)inArguments{
+    if(inArguments.count<1){
+        return @(NO);
+    }
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NSString *sessionId=[info objectForKey:@"sessionId"];
     NSString *sessionType=[info objectForKey:@"sessionType"];
     NIMSession *session=[self sessionWithType:sessionType sessionId:sessionId];
@@ -1264,17 +1333,23 @@
         }
     }
     notification.setting = setting;
+    __block BOOL isSuccess;
     [[self.uexNIMMgr.SDK systemNotificationManager] sendCustomNotification:notification toSession:session completion:^(NSError *error) {
         if(error){
             [self.uexNIMMgr callBackJsonWithFunction:@"cbSendCustomNotification" parameter:@{@"error":@(error.code)}];
+            isSuccess = NO;
         }
         else{
             [self.uexNIMMgr callBackJsonWithFunction:@"cbSendCustomNotification" parameter:@{@"error":@""}];
+            isSuccess = YES;
         }
     }];
+    return @(isSuccess);
 }
 #pragma mark -8.APNS
 -(void)registerAPNS:(NSMutableArray *)inArguments{
+    ACArgsUnpack(ACJSFunctionRef *func) = inArguments;
+    self.registerAPNSFunc = func;
     UIApplication *application = [UIApplication sharedApplication];
     application.applicationIconBadgeNumber = 0;
     
@@ -1305,6 +1380,9 @@
     [dict setValue:[NSNumber numberWithBool:YES] forKey:@"result"];
     [dict setValue:@"" forKey:@"error"];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbRegisterAPNS" parameter:dict];
+    [self.registerAPNSFunc executeWithArguments:ACArgsPack(@(0))];
+    self.registerAPNSFunc = nil;
+    
 }
 -(void)NIMRegisterAPNsFail:(NSNotification *)notif{
     NSError *error =[notif.userInfo objectForKey:@"error"];
@@ -1312,6 +1390,8 @@
     [dict setValue:[NSNumber numberWithBool:NO] forKey:@"result"];
     [dict setValue:@(error.code) forKey:@"error"];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbRegisterAPNS" parameter:dict];
+    [self.registerAPNSFunc executeWithArguments:ACArgsPack(@(1),@(error.code))];
+    self.registerAPNSFunc = nil;
 }
 
 + (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken{
@@ -1326,22 +1406,32 @@
     [[NSNotificationCenter defaultCenter] postNotificationName:@"NIMRegisterAPNsFail" object:nil userInfo:dict];
 }
 -(void)getApnsSetting:(NSMutableArray *)inArguments{
+    ACArgsUnpack(ACJSFunctionRef *func) = inArguments;
     NIMPushNotificationSetting *setting =  [[[NIMSDK sharedSDK] apnsManager] currentSetting];
+    NSNumber *error = @(1);
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
-    [result setValue:@(setting.type) forKey:@"type"];
-    [result setValue:@(setting.noDisturbing) forKey:@"noDisturbing"];
-    [result setValue:@(setting.noDisturbingStartH) forKey:@"noDisturbingStartH"];
-    [result setValue:@(setting.noDisturbingStartM) forKey:@"noDisturbingStartM"];
-    [result setValue:@(setting.noDisturbingEndH) forKey:@"noDisturbingEndH"];
-    [result setValue:@(setting.noDisturbingEndM) forKey:@"noDisturbingEndM"];
+    if (setting) {
+        error = @(0);
+        [result setValue:@(setting.type) forKey:@"type"];
+        [result setValue:@(setting.noDisturbing) forKey:@"noDisturbing"];
+        [result setValue:@(setting.noDisturbingStartH) forKey:@"noDisturbingStartH"];
+        [result setValue:@(setting.noDisturbingStartM) forKey:@"noDisturbingStartM"];
+        [result setValue:@(setting.noDisturbingEndH) forKey:@"noDisturbingEndH"];
+        [result setValue:@(setting.noDisturbingEndM) forKey:@"noDisturbingEndM"];
+        [func executeWithArguments:ACArgsPack(error,result)];
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbGetApnsSetting" parameter:result];
+    } else {
+        [func executeWithArguments:ACArgsPack(error)];
+    }
     
-    [self.uexNIMMgr callBackJsonWithFunction:@"cbGetApnsSetting" parameter:result];
+    
+    
 }
 -(void) updateApnsSetting:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NIMPushNotificationSetting *setting=[[NIMPushNotificationSetting alloc]init];
     if([info objectForKey:@"type"]){
         setting.type=[[info objectForKey:@"type"] integerValue];
@@ -1365,9 +1455,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateApnsSetting" parameter:result];
     }];
@@ -1378,24 +1470,33 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *userId=[info objectForKey:@"userId"];
     NIMUser *user= [[self.uexNIMMgr.SDK userManager] userInfo:userId];
-    NSMutableDictionary *result=[self.uexNIMMgr analyzeWithNIMUser:user];
-    [self.uexNIMMgr callBackJsonWithFunction:@"cbUserInfo" parameter:result];
+    if (user) {
+        NSMutableDictionary *result=[self.uexNIMMgr analyzeWithNIMUser:user];
+        [func executeWithArguments:ACArgsPack(@(0),result)];
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbUserInfo" parameter:result];
+    }else{
+        [func executeWithArguments:ACArgsPack(@(1),@"uesr is not exist")];
+    }
+    
 }
 -(void) fetchUserInfos:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
-    NSArray *userIds=[[info objectForKey:@"userIds"] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
+    NSArray *userIds=[info objectForKey:@"userIds"];
     
     [self.uexNIMMgr.SDK.userManager fetchUserInfos:userIds completion:^(NSArray *users, NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         NSMutableArray *userArr=[NSMutableArray array];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
@@ -1404,8 +1505,9 @@
                    [userArr addObject:[self.uexNIMMgr analyzeWithNIMUser:user]];
                }
             }
+            [result setValue:userArr forKey:@"users"];
+             [func executeWithArguments:ACArgsPack(@(0),result)];
         }
-        [result setValue:userArr forKey:@"users"];
         [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchUserInfos" parameter:result];
     }];
 }
@@ -1413,11 +1515,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
-//    NSMutableDictionary *userInfo=[NSMutableDictionary dictionary];
-//    if([info objectForKey:@"nickname"] !=nil){
-//        
-//    }
+    
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSDictionary *userInfo=@{
                @(NIMUserInfoUpdateTagNick):[info objectForKey:@"nickname"],
                @(NIMUserInfoUpdateTagAvatar):[info objectForKey:@"avatar"],
@@ -1432,9 +1531,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateMyUserInfo" parameter:result];
     }];
@@ -1442,6 +1543,7 @@
 }
 #pragma mark -10.用户关系托管
 -(void) myFriends:(NSMutableArray *)inArguments{
+    ACArgsUnpack(ACJSFunctionRef*func) = inArguments;
     NSArray *users= [[self.uexNIMMgr.SDK userManager] myFriends];
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     NSMutableArray *userArr=[NSMutableArray array];
@@ -1449,15 +1551,20 @@
         for(NIMUser *user in users){
             [userArr addObject:[self.uexNIMMgr analyzeWithNIMUser:user]];
         }
+        [result setValue:userArr forKey:@"users"];
+         [func executeWithArguments:ACArgsPack(@(0),result)];
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbMyFriends" parameter:result];
+    }else{
+         [func executeWithArguments:ACArgsPack(@(1))];
     }
-    [result setValue:userArr forKey:@"users"];
-    [self.uexNIMMgr callBackJsonWithFunction:@"cbMyFriends" parameter:result];
+    
 }
 -(void) requestFriend:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NIMUserOperation operation;
     if([info objectForKey:@"operation"]){
         switch ([[info objectForKey:@"operation"] integerValue]) {
@@ -1486,9 +1593,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbRequestFriend" parameter:result];
     }];
@@ -1497,15 +1606,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *userId = [info objectForKey:@"userId"];
     [self.uexNIMMgr.SDK.userManager deleteFriend:userId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbDeleteFriend" parameter:result];
     }];
@@ -1526,15 +1638,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *userId = [info objectForKey:@"userId"];
     [self.uexNIMMgr.SDK.userManager addToBlackList:userId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbAddToBlackList" parameter:result];
     }];
@@ -1543,15 +1658,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *userId = [info objectForKey:@"userId"];
     [self.uexNIMMgr.SDK.userManager removeFromBlackBlackList:userId completion:^(NSError *error) {
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbRemoveFromBlackBlackList" parameter:result];
     }];
@@ -1560,15 +1678,18 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *userId = [info objectForKey:@"userId"];
     BOOL isUserInBlackList=[self.uexNIMMgr.SDK.userManager isUserInBlackList:userId];
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     if (isUserInBlackList) {
         [result setValue:[NSNumber numberWithBool:YES] forKey:@"result"];
+        [func executeWithArguments:ACArgsPack(@(0))];
     }
     else{
         [result setValue:[NSNumber numberWithBool:NO] forKey:@"result"];
+        [func executeWithArguments:ACArgsPack(@(1))];
     }
     [self.uexNIMMgr callBackJsonWithFunction:@"cbIsUserInBlackList" parameter:result];
 }
@@ -1588,7 +1709,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *userId=[info objectForKey:@"userId"];
     BOOL notify=NO;
     if([[info objectForKey:@"notify"] boolValue]){
@@ -1598,9 +1720,11 @@
         NSMutableDictionary *result=[NSMutableDictionary dictionary];
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
+             [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUpdateNotifyStateForUser" parameter:result];
     }];
@@ -1609,15 +1733,17 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *userId = [info objectForKey:@"userId"];
     BOOL notifyForNewMsg=[self.uexNIMMgr.SDK.userManager notifyForNewMsg:userId];
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     if (notifyForNewMsg) {
         [result setValue:[NSNumber numberWithBool:YES] forKey:@"result"];
+        [func executeWithArguments:ACArgsPack(@(0))];
     }
     else{
         [result setValue:[NSNumber numberWithBool:NO] forKey:@"result"];
+        [func executeWithArguments:ACArgsPack(@(1))];
     }
     [self.uexNIMMgr callBackJsonWithFunction:@"cbNotifyForNewMsgForUser" parameter:result];
 }
@@ -1627,10 +1753,11 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSMutableArray *callees=[NSMutableArray array];
     if([info objectForKey:@"userIds"]){
-        callees=[[info objectForKey:@"userIds"] JSONValue];
+        callees=[info objectForKey:@"userIds"] ;
     }
     NIMNetCallType type;
     switch ([[info objectForKey:@"type"] integerValue]) {
@@ -1649,10 +1776,12 @@
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
             [result setValue:@"" forKey:@"callID"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
             [result setValue:[NSString stringWithFormat:@"%llu",callID] forKey:@"callID"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbStart" parameter:result];
     }];
@@ -1662,7 +1791,7 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     UInt64 callID;
     if ([info objectForKey:@"callID"]) {
         callID=[[info objectForKey:@"callID"] integerValue];
@@ -1678,10 +1807,12 @@
         if (error) {
             [result setValue:@(error.code) forKey:@"error"];
             [result setValue:@"" forKey:@"callID"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             [result setValue:@"" forKey:@"error"];
             [result setValue:[NSString stringWithFormat:@"%llu",callID] forKey:@"callID"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbResponse" parameter:result];
     }];
@@ -1691,7 +1822,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     UInt64 callID = 0;
     if ([info objectForKey:@"callID"]) {
         callID=[[info objectForKey:@"callID"] integerValue];
@@ -1753,7 +1885,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     UInt64 callID = 0;
     if ([info objectForKey:@"callID"]) {
         callID=[[info objectForKey:@"callID"] integerValue];
@@ -1779,7 +1912,8 @@
     if(self.uexNIMMgr.localView){
         [self.uexNIMMgr.localView removeFromSuperview];
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     float localViewX=0,localViewY=0,localViewW=0,localViewH=0,remoteViewX=0,remoteViewY=0,remoteViewW=0,remoteViewH=0;
     if([info objectForKey:@"localViewX"]){
         localViewX=[[info objectForKey:@"localViewX"] floatValue];
@@ -1821,8 +1955,8 @@
     self.uexNIMMgr.localView.frame=CGRectMake(localViewX, localViewY, localViewW, localViewH);
     self.uexNIMMgr.localView.backgroundColor=[UIColor clearColor];
     [self.uexNIMMgr.remoteView addSubview:self.uexNIMMgr.localView];
-    
-    [EUtility brwView:meBrwView addSubview:self.uexNIMMgr.remoteView];
+    [[self.webViewEngine webView] addSubview:self.uexNIMMgr.remoteView];
+    //[EUtility brwView:meBrwView addSubview:self.uexNIMMgr.remoteView];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbInitRemoteView" parameter:@{@"result":@(YES)}];
 }
 -(void)removeRemoteView:(NSMutableArray *)inArguments{
@@ -1838,7 +1972,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     BOOL mute=[[info objectForKey:@"mute"] boolValue];
     BOOL result=[self.uexNIMMgr.SDK.netCallManager setMute:mute];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbSetMute" parameter:@{@"result":@(result)}];
@@ -1847,7 +1982,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     BOOL useSpeaker=[[info objectForKey:@"useSpeaker"] boolValue];
     BOOL result=[self.uexNIMMgr.SDK.netCallManager setSpeaker:useSpeaker];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbSetSpeaker" parameter:@{@"result":@(result)}];
@@ -1856,7 +1992,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    
+    ACArgsUnpack(NSDictionary *info) = inArguments;
     NIMNetCallCamera camera;
     if([info objectForKey:@"camera"]){
         switch ([[info objectForKey:@"camera"] integerValue]) {
@@ -1877,7 +2014,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info) = inArguments;
     BOOL disable=[[info objectForKey:@"disable"] boolValue];
     BOOL result=[self.uexNIMMgr.SDK.netCallManager setCameraDisable:disable];
     [self.uexNIMMgr callBackJsonWithFunction:@"cbSetCameraDisable" parameter:@{@"result":@(result)}];
@@ -1886,7 +2024,8 @@
     NSURL *filePath;
     int videoBitrate;
     if(inArguments.count>0){
-        id info=[inArguments[0] JSONValue];
+        //id info=[inArguments[0] JSONValue];
+         ACArgsUnpack(NSDictionary *info) = inArguments;
         if([info objectForKey:@"filePath"] &&![[info objectForKey:@"filePath"] isEqual:@""]){
             filePath=[NSURL URLWithString:[info objectForKey:@"filePath"]];
         }
@@ -1934,19 +2073,19 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     id extension=[info objectForKey:@"extension"];
     id notifyExtension=[info objectForKey:@"notifyExtension"];
     NSString *roomExt, *roomNotifyExt;
     if(extension && [extension isKindOfClass:[NSDictionary class]]){
-        roomExt=[extension JSONFragment];
+        roomExt=[extension ac_JSONFragment];
     }
     else{
         roomExt=extension;
     }
     if(notifyExtension && [notifyExtension isKindOfClass:[NSDictionary class]]){
-        roomNotifyExt=[notifyExtension JSONFragment];
+        roomNotifyExt=[notifyExtension ac_JSONFragment];
     }
     else{
         roomNotifyExt=notifyExtension;
@@ -1960,9 +2099,11 @@
     request.roomAvatar=[info objectForKey:@"avatar"];
     [self.uexNIMMgr.SDK.chatroomManager enterChatroom:request completion:^(NSError *error, NIMChatroom *chatroom, NIMChatroomMember *me) {
         if(error){
+            [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
             [self.uexNIMMgr callBackJsonWithFunction:@"cbEnterChatRoom" parameter:@{@"error":@(error.code)}];
         }
         else{
+             [func executeWithArguments:ACArgsPack(@(0))];
             [self.uexNIMMgr callBackJsonWithFunction:@"cbEnterChatRoom" parameter:@{@"error":@""}];
         }
     }];
@@ -1972,14 +2113,17 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
    
     [self.uexNIMMgr.SDK.chatroomManager exitChatroom:roomId completion:^(NSError *error) {
         if(error){
+            [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
             [self.uexNIMMgr callBackJsonWithFunction:@"cbExitChatRoom" parameter:@{@"error":@(error.code)}];
         }
         else{
+            [func executeWithArguments:ACArgsPack(@(0))];
             [self.uexNIMMgr callBackJsonWithFunction:@"cbExitChatRoom" parameter:@{@"error":@""}];
         }
     }];
@@ -1988,7 +2132,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSTimeInterval startTime=0;
     if([info objectForKey:@"startTime"]){
@@ -2009,6 +2154,7 @@
         if(error){
             [result setValue:@(error.code) forKey:@"error"];
             [result setValue:@"" forKey:@"messages"];
+            [func executeWithArguments:ACArgsPack(@(1),result)];
         }
         else{
             for (NIMMessage *message in messages) {
@@ -2016,6 +2162,7 @@
             }
             [result setValue:@"" forKey:@"error"];
             [result setValue:msgArr forKey:@"messages"];
+            [func executeWithArguments:ACArgsPack(@(0),result)];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomHistoryMsg" parameter:result];
     }];
@@ -2024,15 +2171,20 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     
     [self.uexNIMMgr.SDK.chatroomManager fetchChatroomInfo:roomId completion:^(NSError *error, NIMChatroom *chatroom) {
         if(error){
+            NSDictionary *dic = @{@"error":@(error.code)};
+            [func executeWithArguments:ACArgsPack(@(0),dic)];
             [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomInfo" parameter:@{@"error":@(error.code),@"data":@""}];
         }
         else{
-            [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomInfo" parameter:@{@"error":@"",@"data":[self.uexNIMMgr analyzeWithNIMChatroom:chatroom]}];
+            NSDictionary *dic = @{@"error":@"",@"data":[self.uexNIMMgr analyzeWithNIMChatroom:chatroom]};
+            [func executeWithArguments:ACArgsPack(@(0),@{@"data":[self.uexNIMMgr analyzeWithNIMChatroom:chatroom]})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomInfo" parameter:dic];
         }
     }];
 }
@@ -2040,7 +2192,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSInteger limit=10;
     if([info objectForKey:@"limit"]){
@@ -2068,7 +2221,7 @@
     request.lastMember=lastMember;
     if([info objectForKey:@"userId"] && ![[info objectForKey:@"userId"] isEqual:@""]){
         NSArray *userIds=[[NSArray alloc]initWithObjects:[info objectForKey:@"userId"], nil];
-        NIMChatroomMembersByIdsRequest *request2=[NIMChatroomMembersByIdsRequest alloc];
+        NIMChatroomMembersByIdsRequest *request2=[[NIMChatroomMembersByIdsRequest alloc]init];
         request2.roomId=roomId;
         request2.userIds=userIds;
         [self.uexNIMMgr.SDK.chatroomManager fetchChatroomMembersByIds:request2 completion:^(NSError *error, NSArray *members) {
@@ -2076,15 +2229,15 @@
             if(!error && members.count>0){
                 request.lastMember=members[0];
             }
-            [self getChatRoomMembersFromMember:request];
+            [self getChatRoomMembersFromMember:request Function:func];
         }];
     }
     else{
-        [self getChatRoomMembersFromMember:request];
+        [self getChatRoomMembersFromMember:request Function:func];
     }
     
 }
--(void)getChatRoomMembersFromMember:(NIMChatroomMemberRequest *)request{
+-(void)getChatRoomMembersFromMember:(NIMChatroomMemberRequest *)request Function:(ACJSFunctionRef*)func{
     
     [self.uexNIMMgr.SDK.chatroomManager fetchChatroomMembers:request completion:^(NSError *error, NSArray *members) {
         NSMutableArray *memberArr=[NSMutableArray array];
@@ -2092,6 +2245,7 @@
         if(error){
             [result setValue:@(error.code) forKey:@"error"];
             [result setValue:@"" forKey:@"data"];
+            [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
         }
         else{
             for (NIMChatroomMember *member in members) {
@@ -2099,6 +2253,7 @@
             }
             [result setValue:@"" forKey:@"error"];
             [result setValue:memberArr forKey:@"data"];
+            [func executeWithArguments:ACArgsPack(@(0),@{@"data":memberArr})];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomMembers" parameter:result];
     }];
@@ -2108,7 +2263,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSArray *userIds=nil;
     if([info objectForKey:@"userIds"]){
@@ -2116,7 +2272,7 @@
             userIds=[info objectForKey:@"userIds"];
         }
         else{
-            userIds=[[info objectForKey:@"userIds"] JSONValue];
+            userIds=[[info objectForKey:@"userIds"] ac_JSONValue];
         }
     }
     
@@ -2129,6 +2285,7 @@
         if(error){
             [result setValue:@(error.code) forKey:@"error"];
             [result setValue:@"" forKey:@"data"];
+             [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
         }
         else{
             for (NIMChatroomMember *member in members) {
@@ -2136,6 +2293,7 @@
             }
             [result setValue:@"" forKey:@"error"];
             [result setValue:memberArr forKey:@"data"];
+            [func executeWithArguments:ACArgsPack(@(0),@{@"data":memberArr})];
         }
         [self.uexNIMMgr callBackJsonWithFunction:@"cbGetChatRoomMembers" parameter:result];
     }];
@@ -2145,7 +2303,8 @@
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSString *userId=[info objectForKey:@"userId"];
     bool enable=YES;
@@ -2159,14 +2318,21 @@
     request.enable=enable;
     
     [self.uexNIMMgr.SDK.chatroomManager updateMemberBlack:request completion:^(NSError *error) {
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbAddUserToBlackList" parameter:@{@"error":error?@(error.code):@""}];
+        if (error) {
+             [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
+             [self.uexNIMMgr callBackJsonWithFunction:@"cbAddUserToBlackList" parameter:@{@"error":@(error.code)}];
+        }else{
+            [func executeWithArguments:ACArgsPack(@(0),@{@"error":@""})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbAddUserToBlackList" parameter:@{@"error":@""}];
+        }
     }];
 }
 -(void)muteUser:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSString *userId=[info objectForKey:@"userId"];
     bool enable=YES;
@@ -2180,14 +2346,21 @@
     request.enable=enable;
     
     [self.uexNIMMgr.SDK.chatroomManager updateMemberMute:request completion:^(NSError *error) {
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbMuteUser" parameter:@{@"error":error?@(error.code):@""}];
+        if (error) {
+            [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbMuteUser" parameter:@{@"error":@(error.code)}];
+        }else{
+            [func executeWithArguments:ACArgsPack(@(0),@{@"error":@""})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbMuteUser" parameter:@{@"error":@""}];
+        }
     }];
 }
 -(void)setAdmin:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSString *userId=[info objectForKey:@"userId"];
     bool enable=YES;
@@ -2201,14 +2374,21 @@
     request.enable=enable;
     
     [self.uexNIMMgr.SDK.chatroomManager markMemberManager:request completion:^(NSError *error) {
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbSetAdmin" parameter:@{@"error":error?@(error.code):@""}];
+        if (error) {
+            [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbSetAdmin" parameter:@{@"error":@(error.code)}];
+        }else{
+            [func executeWithArguments:ACArgsPack(@(0),@{@"error":@""})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbSetAdmin" parameter:@{@"error":@""}];
+        }
     }];
 }
 -(void)setNormal:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+     ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSString *userId=[info objectForKey:@"userId"];
     bool enable=YES;
@@ -2222,14 +2402,21 @@
     request.enable=enable;
     
     [self.uexNIMMgr.SDK.chatroomManager markNormalMember:request completion:^(NSError *error) {
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbSetNormal" parameter:@{@"error":error?@(error.code):@""}];
+        if (error) {
+            [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbSetNormal" parameter:@{@"error":@(error.code)}];
+        }else{
+            [func executeWithArguments:ACArgsPack(@(0),@{@"error":@""})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbSetNormal" parameter:@{@"error":@""}];
+        }
     }];
 }
 -(void)kickMemberFromChatRoom:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
         return;
     }
-    id info=[inArguments[0] JSONValue];
+    //id info=[inArguments[0] JSONValue];
+    ACArgsUnpack(NSDictionary *info, ACJSFunctionRef*func) = inArguments;
     NSString *roomId=[info objectForKey:@"roomId"];
     NSString *userId=[info objectForKey:@"userId"];
     
@@ -2238,7 +2425,13 @@
     request.userId=userId;
     
     [self.uexNIMMgr.SDK.chatroomManager kickMember:request completion:^(NSError *error) {
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbKickMemberFromChatRoom" parameter:@{@"error":error?@(error.code):@""}];
+        if (error) {
+            [func executeWithArguments:ACArgsPack(@(1),@{@"error":@(error.code)})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbKickMemberFromChatRoom" parameter:@{@"error":@(error.code)}];
+        }else{
+            [func executeWithArguments:ACArgsPack(@(0),@{@"error":@""})];
+            [self.uexNIMMgr callBackJsonWithFunction:@"cbKickMemberFromChatRoom" parameter:@{@"error":@""}];
+        }
     }];
 }
 @end
