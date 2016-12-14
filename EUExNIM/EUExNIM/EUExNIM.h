@@ -7,8 +7,6 @@
 //
 #import<UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
-#import "EUExBase.h"
-#import "NIMSDK.h"
 #import "NSString+NTES.h"
 #import "NTESGLView.h"
 

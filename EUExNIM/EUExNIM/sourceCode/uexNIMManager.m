@@ -32,7 +32,7 @@
     return self;
 }
 #pragma mark -registerApp
--(void) registerApp:(NSString *)appKey apnsCertName:(NSString *)apnsCertName{
+-(void) registerApp:(NSString *)appKey apnsCertName:(NSString *)apnsCertName Function:(ACJSFunctionRef *)func{
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
     if([appKey length]){
         if(!_SDK){
@@ -42,15 +42,18 @@
             [self addDelegate];
             [result setValue:[NSNumber numberWithBool:YES] forKey:@"reslut"];
             [result setValue:@"" forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(0))];
         }
         else{
             [result setValue:[NSNumber numberWithBool:NO] forKey:@"reslut"];
             [result setValue:@(0) forKey:@"error"];
+            [func executeWithArguments:ACArgsPack(@(1))];
         }
     }
     else{
         [result setValue:[NSNumber numberWithBool:NO] forKey:@"reslut"];
         [result setValue:@(1) forKey:@"error"];
+        [func executeWithArguments:ACArgsPack(@(1))];
     }
     
     [self callBackJsonWithFunction:@"cbRegisterApp" parameter:result];
@@ -172,6 +175,7 @@
     }
     
     [self callBackJsonWithFunction:@"cbDidSendMessage" parameter:result];
+    [self callBackJsonWithFunction:@"onMessageSend" parameter:result];
 }
 - (void)onRecvMessages:(NSArray *)messages{
     NSMutableArray *results=[NSMutableArray array];
@@ -220,6 +224,7 @@
 
 #pragma mark -5.语音录制及回放
 -(void)playAudio:(NSString *)filePath{
+
     [[self.SDK mediaManager] playAudio:filePath withDelegate:self];
 }
 - (void)playAudio:(NSString *)filePath didBeganWithError:(NSError *)error{
@@ -232,6 +237,8 @@
     }
     [result setValue:filePath forKey:@"filePath"];
     [self callBackJsonWithFunction:@"cbBeganPlayAudio" parameter:result];
+    [self callBackJsonWithFunction:@"onBeganPlayAudio" parameter:result];
+    
 }
 - (void)playAudio:(NSString *)filePath didCompletedWithError:(NSError *)error{
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
@@ -243,6 +250,7 @@
     }
     [result setValue:filePath forKey:@"filePath"];
     [self callBackJsonWithFunction:@"cbCompletedPlayAudio" parameter:result];
+    [self callBackJsonWithFunction:@"onCompletedPlayAudio" parameter:result];
 }
 - (void)recordAudio:(NSString *)filePath didBeganWithError:(NSError *)error{
     NSMutableDictionary *result=[NSMutableDictionary dictionary];
@@ -573,7 +581,7 @@
                         }
                     }
                     [result setValue:targets?:@"" forKey:@"targets"];
-                    [result setValue:[(NIMChatroomNotificationContent *)notificationContent notifyExt]?[[(NIMChatroomNotificationContent *)notificationContent notifyExt] JSONValue]:@"" forKey:@"notifyExtension"];
+                    [result setValue:[(NIMChatroomNotificationContent *)notificationContent notifyExt]?[[(NIMChatroomNotificationContent *)notificationContent notifyExt] ac_JSONValue]:@"" forKey:@"notifyExtension"];
                     
                     break;
                     
@@ -657,7 +665,7 @@
     [resultDic setValue:room.creator?:@"" forKey:@"creator"];
     [resultDic setValue:@(room.onlineUserCount)?:@"" forKey:@"onlineUserCount"];
     [resultDic setValue:room.broadcastUrl?:@"" forKey:@"broadcastUrl"];
-    [resultDic setValue:room.ext?[room.ext JSONValue]:@"" forKey:@"extention"];
+    [resultDic setValue:room.ext?[room.ext ac_JSONValue]:@"" forKey:@"extention"];
     
     return resultDic;
 }
@@ -671,7 +679,7 @@
     [resultDic setValue:@(member.isMuted)?:@"" forKey:@"isMuted"];
     [resultDic setValue:@(member.isOnline)?:@"" forKey:@"isOnline"];
     [resultDic setValue:@(member.enterTimeInterval)?:@"" forKey:@"enterTime"];
-    [resultDic setValue:member.roomExt?[member.roomExt JSONValue]:@"" forKey:@"extention"];
+    [resultDic setValue:member.roomExt?[member.roomExt ac_JSONValue]:@"" forKey:@"extention"];
     
     return resultDic;
 }
@@ -679,7 +687,7 @@
 const static NSString *kPluginName=@"uexNIM";
 -(void)callBackJsonWithFunction:(NSString *)functionName parameter:(id)obj{
     
-    NSString *paramStr=[obj JSONFragment];
+    NSString *paramStr=[obj ac_JSONFragment];
     NSString *jsonStr = [NSString stringWithFormat:@"if(%@.%@ != null){%@.%@('%@');}",kPluginName,functionName,kPluginName,functionName,paramStr];
     //dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
     dispatch_async(self.callBackDispatchQueue, ^(void){
