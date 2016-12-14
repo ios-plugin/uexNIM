@@ -2,6 +2,6 @@
 <uexplugins>
     <plugin
         uexName="uexNIM" version="4.0.0" build="0">
-        <info>0:插件4.0，支持iOS10</info>
+        <info>0:网易云信</info>
     </plugin>
 </uexplugins>
