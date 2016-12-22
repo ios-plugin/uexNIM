@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <uexplugins>
-    <plugin uexName="uexNIM" version="4.0.0" build="0">
-        <info>0:网易云信</info>
+    <plugin uexName="uexNIM" version="4.0.1" build="1">
+        <info>1:网易云信插件升级SDK支持ATS</info>
+        <build>0:网易云信</build>
     </plugin>
 </uexplugins>

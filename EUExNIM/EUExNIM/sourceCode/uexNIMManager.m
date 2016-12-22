@@ -64,9 +64,11 @@
     [_SDK.loginManager addDelegate:self];
     [_SDK.chatManager addDelegate:self];
     [_SDK.conversationManager addDelegate:self];
+    [_SDK.mediaManager addDelegate:self];
     [_SDK.teamManager addDelegate:self];
     [_SDK.userManager addDelegate:self];
     [_SDK.systemNotificationManager addDelegate:self];
+    [_SDK.apnsManager addDelegate:self];
     [_SDK.netCallManager addDelegate:self];
     [_SDK.chatroomManager addDelegate:self];
     //[_SDK.rtsManager addDelegate:self];
@@ -76,9 +78,11 @@
     [_SDK.loginManager removeDelegate:self];
     [_SDK.chatManager removeDelegate:self];
     [_SDK.conversationManager removeDelegate:self];
+    [_SDK.mediaManager removeDelegate:self];
     [_SDK.teamManager removeDelegate:self];
     [_SDK.userManager removeDelegate:self];
     [_SDK.systemNotificationManager removeDelegate:self];
+    [_SDK.apnsManager removeDelegate:self];
     [_SDK.netCallManager removeDelegate:self];
     [_SDK.chatroomManager removeDelegate:self];
     //[_SDK.rtsManager removeDelegate:self];
@@ -225,7 +229,8 @@
 #pragma mark -5.语音录制及回放
 -(void)playAudio:(NSString *)filePath{
 
-    [[self.SDK mediaManager] playAudio:filePath withDelegate:self];
+//    [[self.SDK mediaManager] playAudio:filePath withDelegate:self];
+    [[self.SDK mediaManager] play:filePath];
 }
 - (void)playAudio:(NSString *)filePath didBeganWithError:(NSError *)error{
     NSMutableDictionary *result=[NSMutableDictionary dictionary];

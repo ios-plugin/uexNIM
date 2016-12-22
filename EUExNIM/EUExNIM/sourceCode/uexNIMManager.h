@@ -11,7 +11,7 @@
 #import "EUExNIM.h"
 #import "NTESGLView.h"
 
-@interface uexNIMManager : NSObject<NIMLoginManagerDelegate,NIMMediaManagerDelgate,NIMNetCallManagerDelegate,NIMSystemNotificationManagerDelegate,NIMTeamManagerDelegate,NIMUserManagerDelegate,NIMConversationManagerDelegate,NIMChatManagerDelegate,NIMChatroomManagerDelegate>
+@interface uexNIMManager : NSObject<NIMLoginManagerDelegate,NIMMediaManagerDelgate,NIMNetCallManagerDelegate,NIMSystemNotificationManagerDelegate,NIMTeamManagerDelegate,NIMUserManagerDelegate,NIMConversationManagerDelegate,NIMChatManagerDelegate,NIMChatroomManagerDelegate,NIMApnsManagerDelegate>
 @property (nonatomic ,weak) NIMSDK *SDK;
 @property (nonatomic,strong) dispatch_queue_t callBackDispatchQueue;
 @property (nonatomic,weak) NIMMessage *message;

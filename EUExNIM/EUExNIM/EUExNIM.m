@@ -668,7 +668,8 @@
         self.uexNIMMgr.SDK.mediaManager.recordProgressUpdateTimeInterval=[[info objectForKey:@"updateTime"] floatValue];
     }
     
-    [self.uexNIMMgr.SDK.mediaManager recordAudioForDuration:duration withDelegate:self.uexNIMMgr];
+//    [self.uexNIMMgr.SDK.mediaManager recordAudioForDuration:duration withDelegate:self.uexNIMMgr];
+    [self.uexNIMMgr.SDK.mediaManager recordForDuration:duration];
 }
 -(void) stopRecord:(NSMutableArray *)inArguments{
     [self.uexNIMMgr.SDK.mediaManager stopRecord];
@@ -1272,10 +1273,10 @@
             [result addObject:[self.uexNIMMgr analyzeWithSystemNotification:notification]];
         }
         [func executeWithArguments:ACArgsPack(error,@{@"notifications":result})];
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchSystemNotifications" parameter:@{@"notifications":result}];
     }else{
          [func executeWithArguments:ACArgsPack(error)];
     }
+    [self.uexNIMMgr callBackJsonWithFunction:@"cbFetchSystemNotifications" parameter:@{@"notifications":result}];
     
 }
 -(NSNumber*) allNotificationsUnreadCount:(NSMutableArray *)inArguments{
@@ -1419,10 +1420,10 @@
         [result setValue:@(setting.noDisturbingEndH) forKey:@"noDisturbingEndH"];
         [result setValue:@(setting.noDisturbingEndM) forKey:@"noDisturbingEndM"];
         [func executeWithArguments:ACArgsPack(error,result)];
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbGetApnsSetting" parameter:result];
     } else {
         [func executeWithArguments:ACArgsPack(error)];
     }
+    [self.uexNIMMgr callBackJsonWithFunction:@"cbGetApnsSetting" parameter:result];
     
     
     
@@ -1480,6 +1481,7 @@
         [self.uexNIMMgr callBackJsonWithFunction:@"cbUserInfo" parameter:result];
     }else{
         [func executeWithArguments:ACArgsPack(@(1),@"uesr is not exist")];
+        [self.uexNIMMgr callBackJsonWithFunction:@"cbUserInfo" parameter:nil];
     }
     
 }
@@ -1553,10 +1555,10 @@
         }
         [result setValue:userArr forKey:@"users"];
          [func executeWithArguments:ACArgsPack(@(0),result)];
-        [self.uexNIMMgr callBackJsonWithFunction:@"cbMyFriends" parameter:result];
     }else{
          [func executeWithArguments:ACArgsPack(@(1))];
     }
+    [self.uexNIMMgr callBackJsonWithFunction:@"cbMyFriends" parameter:result];
     
 }
 -(void) requestFriend:(NSMutableArray *)inArguments{
@@ -1899,8 +1901,9 @@
     [self.uexNIMMgr callBackJsonWithFunction:@"cbCurrentCallID" parameter:@{@"callID":[NSString stringWithFormat:@"%llu",callID]}];
 }
 -(void) callNetStatus:(NSMutableArray *)inArguments{
-    NIMNetCallNetStatus netStatus=[self.uexNIMMgr.SDK.netCallManager netStatus];
-    [self.uexNIMMgr callBackJsonWithFunction:@"cbCallNetStatus" parameter:@{@"netStatus":@(netStatus)}];
+    //注释掉，等android做了再改
+//    NIMNetCallNetStatus netStatus=[self.uexNIMMgr.SDK.netCallManager netStatus];
+//    [self.uexNIMMgr callBackJsonWithFunction:@"cbCallNetStatus" parameter:@{@"netStatus":@(netStatus)}];
 }
 -(void)initRemoteView:(NSMutableArray *)inArguments{
     if(inArguments.count<1){
